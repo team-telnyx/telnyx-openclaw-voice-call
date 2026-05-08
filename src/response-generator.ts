@@ -85,7 +85,9 @@ function tryParseSpokenJson(text: string): string | null {
     }
   }
 
-  const inlineSpokenMatch = trimmed.match(/"spoken"\s*:\s*"((?:[^"\\]|\\.)*)"/i);
+  const inlineSpokenMatch = trimmed.match(
+    /"spoken"\s*:\s*"((?:[^"\\]|\\.)*)"/i,
+  );
   if (!inlineSpokenMatch) {
     return null;
   }
@@ -112,7 +114,9 @@ function isLikelyMetaReasoningParagraph(paragraph: string): boolean {
   }
   if (
     lower.startsWith("the user ") &&
-    (lower.includes("i should") || lower.includes("i need to") || lower.includes("i will"))
+    (lower.includes("i should") ||
+      lower.includes("i need to") ||
+      lower.includes("i will"))
   ) {
     return true;
   }
@@ -137,14 +141,19 @@ function sanitizePlainSpokenText(text: string): string | null {
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
 
-  while (paragraphs.length > 1 && isLikelyMetaReasoningParagraph(paragraphs[0])) {
+  while (
+    paragraphs.length > 1 &&
+    isLikelyMetaReasoningParagraph(paragraphs[0])
+  ) {
     paragraphs.shift();
   }
 
   return normalizeSpokenText(paragraphs.join(" "));
 }
 
-function extractSpokenTextFromPayloads(payloads: VoiceResponsePayload[]): string | null {
+function extractSpokenTextFromPayloads(
+  payloads: VoiceResponsePayload[],
+): string | null {
   const spokenSegments: string[] = [];
 
   for (const payload of payloads) {
@@ -174,7 +183,10 @@ function extractSpokenTextFromPayloads(payloads: VoiceResponsePayload[]): string
   return spokenSegments.length > 0 ? spokenSegments.join(" ").trim() : null;
 }
 
-function resolveVoiceSandboxSessionKey(agentId: string, sessionKey: string): string {
+function resolveVoiceSandboxSessionKey(
+  agentId: string,
+  sessionKey: string,
+): string {
   const trimmed = sessionKey.trim();
   if (trimmed.toLowerCase().startsWith("agent:")) {
     return trimmed;
@@ -214,7 +226,9 @@ export async function generateVoiceResponse(
   const agentId = voiceConfig.agentId ?? "main";
 
   // Resolve paths
-  const storePath = agentRuntime.session.resolveStorePath(cfg.session?.store, { agentId });
+  const storePath = agentRuntime.session.resolveStorePath(cfg.session?.store, {
+    agentId,
+  });
   const agentDir = agentRuntime.resolveAgentDir(cfg, agentId);
   const workspaceDir = agentRuntime.resolveAgentWorkspaceDir(cfg, agentId);
 
@@ -224,41 +238,57 @@ export async function generateVoiceResponse(
   // Load or create session entry
   const sessionStore = agentRuntime.session.loadSessionStore(storePath);
   const now = Date.now();
-  const existingSessionEntry = sessionStore[resolvedSessionKey] as SessionEntry | undefined;
+  const existingSessionEntry = sessionStore[resolvedSessionKey] as
+    | SessionEntry
+    | undefined;
 
   // Resolve model from config
-  const { provider, model } = resolveVoiceResponseModel({ voiceConfig, agentRuntime });
+  const { provider, model } = resolveVoiceResponseModel({
+    voiceConfig,
+    agentRuntime,
+  });
 
   let sessionEntry = existingSessionEntry;
   if (!sessionEntry?.sessionId || voiceConfig.responseModel) {
-    sessionEntry = await agentRuntime.session.updateSessionStore(storePath, (store) => {
-      let entry = store[resolvedSessionKey] as SessionEntry | undefined;
-      if (!entry?.sessionId) {
-        entry = {
-          ...entry,
-          sessionId: crypto.randomUUID(),
-          updatedAt: now,
-        };
-        store[resolvedSessionKey] = entry;
-      }
-      if (voiceConfig.responseModel) {
-        applyModelOverrideToSessionEntry({
-          entry,
-          selection: { provider, model },
-          selectionSource: "auto",
-        });
-      }
-      return entry;
-    });
+    sessionEntry = await agentRuntime.session.updateSessionStore(
+      storePath,
+      (store) => {
+        let entry = store[resolvedSessionKey] as SessionEntry | undefined;
+        if (!entry?.sessionId) {
+          entry = {
+            ...entry,
+            sessionId: crypto.randomUUID(),
+            updatedAt: now,
+          };
+          store[resolvedSessionKey] = entry;
+        }
+        if (voiceConfig.responseModel) {
+          applyModelOverrideToSessionEntry({
+            entry,
+            selection: { provider, model },
+            selectionSource: "auto",
+          });
+        }
+        return entry;
+      },
+    );
   }
   const sessionId = sessionEntry.sessionId;
 
-  const sessionFile = agentRuntime.session.resolveSessionFilePath(sessionId, sessionEntry, {
-    agentId,
-  });
+  const sessionFile = agentRuntime.session.resolveSessionFilePath(
+    sessionId,
+    sessionEntry,
+    {
+      agentId,
+    },
+  );
 
   // Resolve thinking level
-  const thinkLevel = agentRuntime.resolveThinkingDefault({ cfg, provider, model });
+  const thinkLevel = agentRuntime.resolveThinkingDefault({
+    cfg,
+    provider,
+    model,
+  });
 
   // Resolve agent identity for personalized prompt
   const identity = agentRuntime.resolveAgentIdentity(cfg, agentId);
@@ -272,21 +302,29 @@ export async function generateVoiceResponse(
   let extraSystemPrompt = basePrompt;
   if (transcript.length > 0) {
     const history = transcript
-      .map((entry) => `${entry.speaker === "bot" ? "You" : "Caller"}: ${entry.text}`)
+      .map(
+        (entry) =>
+          `${entry.speaker === "bot" ? "You" : "Caller"}: ${entry.text}`,
+      )
       .join("\n");
     extraSystemPrompt = `${basePrompt}\n\nConversation so far:\n${history}`;
   }
   extraSystemPrompt = `${extraSystemPrompt}\n\n${VOICE_SPOKEN_OUTPUT_CONTRACT}`;
 
   // Resolve timeout
-  const timeoutMs = voiceConfig.responseTimeoutMs ?? agentRuntime.resolveAgentTimeoutMs({ cfg });
+  const timeoutMs =
+    voiceConfig.responseTimeoutMs ??
+    agentRuntime.resolveAgentTimeoutMs({ cfg });
   const runId = `voice:${callId}:${Date.now()}`;
 
   try {
     const result = await agentRuntime.runEmbeddedPiAgent({
       sessionId,
       sessionKey: resolvedSessionKey,
-      sandboxSessionKey: resolveVoiceSandboxSessionKey(agentId, resolvedSessionKey),
+      sandboxSessionKey: resolveVoiceSandboxSessionKey(
+        agentId,
+        resolvedSessionKey,
+      ),
       agentId,
       messageProvider: "voice",
       sessionFile,
@@ -304,7 +342,9 @@ export async function generateVoiceResponse(
       agentDir,
     });
 
-    const text = extractSpokenTextFromPayloads((result.payloads ?? []) as VoiceResponsePayload[]);
+    const text = extractSpokenTextFromPayloads(
+      (result.payloads ?? []) as VoiceResponsePayload[],
+    );
 
     if (!text && result.meta?.aborted) {
       return { text: null, error: "Response generation was aborted" };

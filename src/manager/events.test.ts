@@ -4,7 +4,11 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { VoiceCallConfigSchema } from "../config.js";
 import type { VoiceCallProvider } from "../providers/base.js";
-import type { AnswerCallInput, HangupCallInput, NormalizedEvent } from "../types.js";
+import type {
+  AnswerCallInput,
+  HangupCallInput,
+  NormalizedEvent,
+} from "../types.js";
 import type { CallManagerContext } from "./context.js";
 import { processEvent } from "./events.js";
 import { flushPendingCallRecordWritesForTest } from "./store.js";
@@ -26,8 +30,12 @@ afterEach(async () => {
   }
 });
 
-function createContext(overrides: Partial<CallManagerContext> = {}): CallManagerContext {
-  const storePath = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-voice-call-events-test-"));
+function createContext(
+  overrides: Partial<CallManagerContext> = {},
+): CallManagerContext {
+  const storePath = fs.mkdtempSync(
+    path.join(os.tmpdir(), "openclaw-voice-call-events-test-"),
+  );
   const ctx: CallManagerContext = {
     activeCalls: new Map(),
     providerCallIdMap: new Map(),
@@ -51,12 +59,17 @@ function createContext(overrides: Partial<CallManagerContext> = {}): CallManager
   return ctx;
 }
 
-function createProvider(overrides: Partial<VoiceCallProvider> = {}): VoiceCallProvider {
+function createProvider(
+  overrides: Partial<VoiceCallProvider> = {},
+): VoiceCallProvider {
   return {
     name: "plivo",
     verifyWebhook: () => ({ ok: true }),
     parseWebhookEvent: () => ({ events: [] }),
-    initiateCall: async () => ({ providerCallId: "provider-call-id", status: "initiated" }),
+    initiateCall: async () => ({
+      providerCallId: "provider-call-id",
+      status: "initiated",
+    }),
     hangupCall: async () => {},
     playTts: async () => {},
     startListening: async () => {},
@@ -291,7 +304,9 @@ describe("processEvent (functional)", () => {
 
     const call = ctx.activeCalls.get("call-late");
     if (!call) {
-      throw new Error("expected replayed event to resolve after call registration");
+      throw new Error(
+        "expected replayed event to resolve after call registration",
+      );
     }
     expect(call.state).toBe("answered");
     expect(call.answeredAt).toBe(now + 1);
@@ -554,7 +569,10 @@ describe("processEvent (functional)", () => {
       processedEventIds: [],
       metadata: {},
     });
-    ctx.providerCallIdMap.set("provider-retryable-error", "call-retryable-error");
+    ctx.providerCallIdMap.set(
+      "provider-retryable-error",
+      "call-retryable-error",
+    );
 
     const event: NormalizedEvent = {
       id: "evt-retryable-error",

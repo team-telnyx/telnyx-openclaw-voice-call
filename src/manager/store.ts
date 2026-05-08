@@ -4,7 +4,12 @@ import {
   privateFileStore,
   privateFileStoreSync,
 } from "openclaw/plugin-sdk/security-runtime";
-import { CallRecordSchema, TerminalStates, type CallId, type CallRecord } from "../types.js";
+import {
+  CallRecordSchema,
+  TerminalStates,
+  type CallId,
+  type CallRecord,
+} from "../types.js";
 
 const pendingPersistWrites = new Set<Promise<void>>();
 
@@ -37,7 +42,9 @@ export function loadActiveCallsFromStore(storePath: string): {
   rejectedProviderCallIds: Set<string>;
 } {
   const logPath = path.join(storePath, "calls.jsonl");
-  const content = privateFileStoreSync(storePath).readTextIfExists(path.basename(logPath));
+  const content = privateFileStoreSync(storePath).readTextIfExists(
+    path.basename(logPath),
+  );
   if (content === null) {
     return {
       activeCalls: new Map(),
@@ -79,7 +86,12 @@ export function loadActiveCallsFromStore(storePath: string): {
     }
   }
 
-  return { activeCalls, providerCallIdMap, processedEventIds, rejectedProviderCallIds };
+  return {
+    activeCalls,
+    providerCallIdMap,
+    processedEventIds,
+    rejectedProviderCallIds,
+  };
 }
 
 export async function getCallHistoryFromStore(
@@ -87,7 +99,9 @@ export async function getCallHistoryFromStore(
   limit = 50,
 ): Promise<CallRecord[]> {
   const logPath = path.join(storePath, "calls.jsonl");
-  const content = await privateFileStore(storePath).readTextIfExists(path.basename(logPath));
+  const content = await privateFileStore(storePath).readTextIfExists(
+    path.basename(logPath),
+  );
   if (content === null) {
     return [];
   }

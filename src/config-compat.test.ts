@@ -48,8 +48,12 @@ describe("voice-call config compatibility", () => {
         },
       },
     });
-    expect((normalized.streaming as Record<string, unknown>).openaiApiKey).toBeUndefined();
-    expect((normalized.streaming as Record<string, unknown>).sttModel).toBeUndefined();
+    expect(
+      (normalized.streaming as Record<string, unknown>).openaiApiKey,
+    ).toBeUndefined();
+    expect(
+      (normalized.streaming as Record<string, unknown>).sttModel,
+    ).toBeUndefined();
   });
 
   it("reports doctor-oriented legacy issues and warnings", () => {
@@ -83,7 +87,8 @@ describe("voice-call config compatibility", () => {
       {
         path: "streaming.openaiApiKey",
         replacement: "streaming.providers.openai.apiKey",
-        message: "Move streaming.openaiApiKey to streaming.providers.openai.apiKey.",
+        message:
+          "Move streaming.openaiApiKey to streaming.providers.openai.apiKey.",
       },
     ]);
     expect(

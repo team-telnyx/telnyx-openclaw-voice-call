@@ -8,7 +8,10 @@ export function generateNotifyTwiml(message: string, voice: string): string {
 </Response>`;
 }
 
-export function generateDtmfRedirectTwiml(digits: string, webhookUrl: string): string {
+export function generateDtmfRedirectTwiml(
+  digits: string,
+  webhookUrl: string,
+): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Play digits="${escapeXml(digits)}" />

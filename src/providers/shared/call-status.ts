@@ -9,16 +9,22 @@ const TERMINAL_PROVIDER_STATUS_TO_END_REASON: Record<string, EndReason> = {
   canceled: "hangup-bot",
 };
 
-export function normalizeProviderStatus(status: string | null | undefined): string {
+export function normalizeProviderStatus(
+  status: string | null | undefined,
+): string {
   const normalized = normalizeOptionalLowercaseString(status);
   return normalized && normalized.length > 0 ? normalized : "unknown";
 }
 
-export function mapProviderStatusToEndReason(status: string | null | undefined): EndReason | null {
+export function mapProviderStatusToEndReason(
+  status: string | null | undefined,
+): EndReason | null {
   const normalized = normalizeProviderStatus(status);
   return TERMINAL_PROVIDER_STATUS_TO_END_REASON[normalized] ?? null;
 }
 
-export function isProviderStatusTerminal(status: string | null | undefined): boolean {
+export function isProviderStatusTerminal(
+  status: string | null | undefined,
+): boolean {
   return mapProviderStatusToEndReason(status) !== null;
 }

@@ -10,7 +10,9 @@ function makeSinePcm(
   const samples = Math.floor(sampleRate * durationSeconds);
   const output = Buffer.alloc(samples * 2);
   for (let i = 0; i < samples; i++) {
-    const value = Math.round(Math.sin((2 * Math.PI * frequencyHz * i) / sampleRate) * amplitude);
+    const value = Math.round(
+      Math.sin((2 * Math.PI * frequencyHz * i) / sampleRate) * amplitude,
+    );
     output.writeInt16LE(value, i * 2);
   }
   return output;

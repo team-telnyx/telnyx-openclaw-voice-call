@@ -50,7 +50,10 @@ export function mapVoiceToPolly(voice: string | undefined): string {
   }
 
   // Map OpenAI voices to Polly equivalents
-  return OPENAI_TO_POLLY_MAP[normalizeLowercaseStringOrEmpty(voice)] || DEFAULT_POLLY_VOICE;
+  return (
+    OPENAI_TO_POLLY_MAP[normalizeLowercaseStringOrEmpty(voice)] ||
+    DEFAULT_POLLY_VOICE
+  );
 }
 
 /**

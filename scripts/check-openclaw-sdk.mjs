@@ -25,7 +25,8 @@ try {
   for (let i = 0; i < 5; i += 1) {
     const packagePath = path.join(dir, "package.json");
     if (fs.existsSync(packagePath)) {
-      openclawVersion = JSON.parse(fs.readFileSync(packagePath, "utf8")).version ?? openclawVersion;
+      openclawVersion =
+        JSON.parse(fs.readFileSync(packagePath, "utf8")).version ?? openclawVersion;
       break;
     }
     dir = path.dirname(dir);
@@ -57,10 +58,14 @@ if (missing.length > 0) {
   for (const item of missing) {
     console.error(`  - ${item}`);
   }
-  console.error("\nThis AIF-126 checkout currently requires the unreleased/local OpenClaw SDK that contains the realtime voice runtime exports.");
-  console.error("For local validation from Ifthikar's workspace, run:");
-  console.error("  npm install --no-save /Users/ifthikar/projects/openclaw-aif-126");
-  console.error("  npm run build");
-  console.error("\nDo not publish this plugin against npm openclaw until those SDK exports are released or the dependency is pinned to a compatible package.\n");
+  console.error(
+    "\nThis plugin requires OpenClaw SDK exports not yet in the published npm package.",
+  );
+  console.error("See: https://github.com/openclaw/openclaw/pull/79378\n");
+  console.error("To validate locally, clone OpenClaw and link it:");
+  console.error("  git clone https://github.com/openclaw/openclaw.git ../openclaw");
+  console.error("  cd ../openclaw && pnpm install && pnpm build && cd -");
+  console.error("  npm install --no-save ../openclaw");
+  console.error("  npm run build\n");
   process.exit(1);
 }

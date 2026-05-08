@@ -26,13 +26,19 @@ describe("RealtimeTwilioAudioPacer", () => {
 
     expect(sent).toHaveLength(1);
     expect(
-      Buffer.from((sent[0] as { media: { payload: string } }).media.payload, "base64"),
+      Buffer.from(
+        (sent[0] as { media: { payload: string } }).media.payload,
+        "base64",
+      ),
     ).toHaveLength(160);
 
     await vi.advanceTimersByTimeAsync(20);
     expect(sent).toHaveLength(2);
     expect(
-      Buffer.from((sent[1] as { media: { payload: string } }).media.payload, "base64"),
+      Buffer.from(
+        (sent[1] as { media: { payload: string } }).media.payload,
+        "base64",
+      ),
     ).toHaveLength(160);
 
     await vi.advanceTimersByTimeAsync(20);

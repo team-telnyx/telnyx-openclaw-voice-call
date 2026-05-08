@@ -41,7 +41,9 @@ vi.mock("./config.js", () => ({
       return `voice:call:${params.callId}`;
     }
     const normalizedPhone = params.phone?.replace(/\D/g, "");
-    return normalizedPhone ? `voice:${normalizedPhone}` : `voice:${params.callId}`;
+    return normalizedPhone
+      ? `voice:${normalizedPhone}`
+      : `voice:${params.callId}`;
   },
   resolveVoiceCallEffectiveConfig: (config: VoiceCallConfig) => ({ config }),
   resolveVoiceCallConfig: mocks.resolveVoiceCallConfig,
@@ -70,7 +72,8 @@ vi.mock("./webhook.js", () => ({
 }));
 
 vi.mock("./realtime-voice.runtime.js", () => ({
-  resolveConfiguredRealtimeVoiceProvider: mocks.resolveConfiguredRealtimeVoiceProvider,
+  resolveConfiguredRealtimeVoiceProvider:
+    mocks.resolveConfiguredRealtimeVoiceProvider,
 }));
 
 vi.mock("./realtime-fast-context.js", () => ({
@@ -132,7 +135,9 @@ function createExternalProviderConfig(params: {
 describe("createVoiceCallRuntime lifecycle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.resolveVoiceCallConfig.mockImplementation((cfg: VoiceCallConfig) => cfg);
+    mocks.resolveVoiceCallConfig.mockImplementation(
+      (cfg: VoiceCallConfig) => cfg,
+    );
     mocks.resolveTwilioAuthToken.mockImplementation(
       (cfg: VoiceCallConfig) => cfg.twilio?.authToken,
     );
@@ -155,7 +160,9 @@ describe("createVoiceCallRuntime lifecycle", () => {
       providerConfig: { model: "gpt-realtime" },
     });
     mocks.resolveRealtimeFastContextConsult.mockReset();
-    mocks.resolveRealtimeFastContextConsult.mockResolvedValue({ handled: false });
+    mocks.resolveRealtimeFastContextConsult.mockResolvedValue({
+      handled: false,
+    });
     mocks.startTunnel.mockResolvedValue(null);
     mocks.setupTailscaleExposure.mockResolvedValue(null);
     mocks.cleanupTailscaleExposure.mockResolvedValue(undefined);
@@ -206,7 +213,9 @@ describe("createVoiceCallRuntime lifecycle", () => {
   });
 
   it("passes fullConfig to the webhook server for streaming provider resolution", async () => {
-    const coreConfig = { messages: { tts: { provider: "openai" } } } as CoreConfig;
+    const coreConfig = {
+      messages: { tts: { provider: "openai" } },
+    } as CoreConfig;
     const fullConfig = {
       plugins: {
         entries: {
@@ -235,7 +244,9 @@ describe("createVoiceCallRuntime lifecycle", () => {
           coreConfig: {} as CoreConfig,
           agentRuntime: {} as never,
         }),
-      ).rejects.toThrow(`${provider} requires a publicly reachable webhook URL`);
+      ).rejects.toThrow(
+        `${provider} requires a publicly reachable webhook URL`,
+      );
       expect(mocks.webhookStop).toHaveBeenCalledTimes(1);
     },
   );
@@ -244,19 +255,22 @@ describe("createVoiceCallRuntime lifecycle", () => {
     "http://127.0.0.1:3334/voice/webhook",
     "http://[::1]:3334/voice/webhook",
     "http://[fd00::1]/voice/webhook",
-  ])("fails closed when Twilio publicUrl %s points at a local-only webhook", async (publicUrl) => {
-    await expect(
-      createVoiceCallRuntime({
-        config: createExternalProviderConfig({
-          provider: "twilio",
-          publicUrl,
+  ])(
+    "fails closed when Twilio publicUrl %s points at a local-only webhook",
+    async (publicUrl) => {
+      await expect(
+        createVoiceCallRuntime({
+          config: createExternalProviderConfig({
+            provider: "twilio",
+            publicUrl,
+          }),
+          coreConfig: {} as CoreConfig,
+          agentRuntime: {} as never,
         }),
-        coreConfig: {} as CoreConfig,
-        agentRuntime: {} as never,
-      }),
-    ).rejects.toThrow("twilio requires a publicly reachable webhook URL");
-    expect(mocks.webhookStop).toHaveBeenCalledTimes(1);
-  });
+      ).rejects.toThrow("twilio requires a publicly reachable webhook URL");
+      expect(mocks.webhookStop).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("accepts an explicit public URL for external voice providers", async () => {
     const runtime = await createVoiceCallRuntime({
@@ -330,7 +344,9 @@ describe("createVoiceCallRuntime lifecycle", () => {
         resolveStorePath: vi.fn(() => "/tmp/sessions.json"),
         loadSessionStore: vi.fn(() => sessionStore),
         saveSessionStore: vi.fn(async () => {}),
-        updateSessionStore: vi.fn(async (_storePath, mutator) => mutator(sessionStore as never)),
+        updateSessionStore: vi.fn(async (_storePath, mutator) =>
+          mutator(sessionStore as never),
+        ),
         resolveSessionFilePath: vi.fn(() => "/tmp/session.json"),
       },
       runEmbeddedPiAgent,
@@ -361,7 +377,8 @@ describe("createVoiceCallRuntime lifecycle", () => {
       expect.any(Function),
     );
 
-    const handler = mocks.realtimeHandlerRegisterToolHandler.mock.calls[0]?.[1] as
+    const handler = mocks.realtimeHandlerRegisterToolHandler.mock
+      .calls[0]?.[1] as
       | ((
           args: unknown,
           callId: string,
@@ -383,9 +400,20 @@ describe("createVoiceCallRuntime lifecycle", () => {
         lane: "voice",
         provider: "openai",
         model: "gpt-5.4",
-        toolsAllow: ["read", "web_search", "web_fetch", "x_search", "memory_search", "memory_get"],
-        extraSystemPrompt: expect.stringContaining("one or two bounded read-only queries"),
-        prompt: expect.stringContaining("Caller: Can you check shipment status?"),
+        toolsAllow: [
+          "read",
+          "web_search",
+          "web_fetch",
+          "x_search",
+          "memory_search",
+          "memory_get",
+        ],
+        extraSystemPrompt: expect.stringContaining(
+          "one or two bounded read-only queries",
+        ),
+        prompt: expect.stringContaining(
+          "Caller: Can you check shipment status?",
+        ),
       }),
     );
     expect(runEmbeddedPiAgent).toHaveBeenCalledWith(
@@ -417,7 +445,9 @@ describe("createVoiceCallRuntime lifecycle", () => {
         resolveStorePath: vi.fn(() => "/tmp/sessions.json"),
         loadSessionStore: vi.fn(() => sessionStore),
         saveSessionStore: vi.fn(async () => {}),
-        updateSessionStore: vi.fn(async (_storePath, mutator) => mutator(sessionStore as never)),
+        updateSessionStore: vi.fn(async (_storePath, mutator) =>
+          mutator(sessionStore as never),
+        ),
         resolveSessionFilePath: vi.fn(() => "/tmp/session.json"),
       },
       runEmbeddedPiAgent,
@@ -437,14 +467,17 @@ describe("createVoiceCallRuntime lifecycle", () => {
       agentRuntime: agentRuntime as never,
     });
 
-    const handler = mocks.realtimeHandlerRegisterToolHandler.mock.calls[0]?.[1] as
+    const handler = mocks.realtimeHandlerRegisterToolHandler.mock
+      .calls[0]?.[1] as
       | ((
           args: unknown,
           callId: string,
           context?: { partialUserTranscript?: string },
         ) => Promise<unknown>)
       | undefined;
-    await expect(handler?.({ question: "What should I say?" }, "call-1")).resolves.toEqual({
+    await expect(
+      handler?.({ question: "What should I say?" }, "call-1"),
+    ).resolves.toEqual({
       text: "Per-call consult answer.",
     });
     expect(runEmbeddedPiAgent).toHaveBeenCalledWith(
@@ -480,7 +513,9 @@ describe("createVoiceCallRuntime lifecycle", () => {
         resolveStorePath: vi.fn(() => "/tmp/sessions.json"),
         loadSessionStore: vi.fn(() => sessionStore),
         saveSessionStore: vi.fn(async () => {}),
-        updateSessionStore: vi.fn(async (_storePath, mutator) => mutator(sessionStore as never)),
+        updateSessionStore: vi.fn(async (_storePath, mutator) =>
+          mutator(sessionStore as never),
+        ),
         resolveSessionFilePath: vi.fn(() => "/tmp/session.json"),
       },
       runEmbeddedPiAgent,
@@ -505,18 +540,19 @@ describe("createVoiceCallRuntime lifecycle", () => {
       agentRuntime: agentRuntime as never,
     });
 
-    const handler = mocks.realtimeHandlerRegisterToolHandler.mock.calls[0]?.[1] as
+    const handler = mocks.realtimeHandlerRegisterToolHandler.mock
+      .calls[0]?.[1] as
       | ((
           args: unknown,
           callId: string,
           context?: { partialUserTranscript?: string },
         ) => Promise<unknown>)
       | undefined;
-    await expect(handler?.({ question: "Are the basement lights on?" }, "call-1")).resolves.toEqual(
-      {
-        text: expect.stringContaining("The caller's basement lights are on."),
-      },
-    );
+    await expect(
+      handler?.({ question: "Are the basement lights on?" }, "call-1"),
+    ).resolves.toEqual({
+      text: expect.stringContaining("The caller's basement lights are on."),
+    });
     expect(mocks.resolveRealtimeFastContextConsult).toHaveBeenCalledWith({
       cfg: {},
       agentId: "main",

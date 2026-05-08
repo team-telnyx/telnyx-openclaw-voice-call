@@ -33,7 +33,12 @@ const E164Schema = z
  * - "pairing": Unknown callers can request pairing (future)
  * - "open": Accept all inbound calls (dangerous!)
  */
-const InboundPolicySchema = z.enum(["disabled", "allowlist", "pairing", "open"]);
+const InboundPolicySchema = z.enum([
+  "disabled",
+  "allowlist",
+  "pairing",
+  "open",
+]);
 
 // -----------------------------------------------------------------------------
 // Provider-Specific Configuration
@@ -90,7 +95,9 @@ const VoiceCallNumberRouteConfigSchema = z
     responseTimeoutMs: z.number().int().positive().optional(),
   })
   .strict();
-export type VoiceCallNumberRouteConfig = z.infer<typeof VoiceCallNumberRouteConfigSchema>;
+export type VoiceCallNumberRouteConfig = z.infer<
+  typeof VoiceCallNumberRouteConfigSchema
+>;
 
 // -----------------------------------------------------------------------------
 // Webhook Server Configuration
@@ -136,7 +143,9 @@ const VoiceCallTunnelConfigSchema = z
      * - "tailscale-serve": Tailscale serve (private to tailnet)
      * - "tailscale-funnel": Tailscale funnel (public HTTPS)
      */
-    provider: z.enum(["none", "ngrok", "tailscale-serve", "tailscale-funnel"]).default("none"),
+    provider: z
+      .enum(["none", "ngrok", "tailscale-serve", "tailscale-funnel"])
+      .default("none"),
     /** ngrok auth token (optional, enables longer sessions and more features) */
     ngrokAuthToken: z.string().min(1).optional(),
     /** ngrok custom domain (paid feature, e.g., "myapp.ngrok.io") */
@@ -176,8 +185,14 @@ const VoiceCallWebhookSecurityConfigSchema = z
     trustedProxyIPs: z.array(z.string().min(1)).default([]),
   })
   .strict()
-  .default({ allowedHosts: [], trustForwardingHeaders: false, trustedProxyIPs: [] });
-export type WebhookSecurityConfig = z.infer<typeof VoiceCallWebhookSecurityConfigSchema>;
+  .default({
+    allowedHosts: [],
+    trustForwardingHeaders: false,
+    trustedProxyIPs: [],
+  });
+export type WebhookSecurityConfig = z.infer<
+  typeof VoiceCallWebhookSecurityConfigSchema
+>;
 
 // -----------------------------------------------------------------------------
 // Outbound Call Configuration
@@ -226,8 +241,14 @@ const VoiceCallRealtimeProvidersConfigSchema = z
   .record(z.string(), z.record(z.string(), z.unknown()))
   .default({});
 
-const VoiceCallRealtimeToolPolicySchema = z.enum(REALTIME_VOICE_AGENT_CONSULT_TOOL_POLICIES);
-const VoiceCallRealtimeConsultPolicySchema = z.enum(["auto", "substantive", "always"]);
+const VoiceCallRealtimeToolPolicySchema = z.enum(
+  REALTIME_VOICE_AGENT_CONSULT_TOOL_POLICIES,
+);
+const VoiceCallRealtimeConsultPolicySchema = z.enum([
+  "auto",
+  "substantive",
+  "always",
+]);
 
 const VoiceCallRealtimeFastContextSourceSchema = z.enum(["memory", "sessions"]);
 
@@ -272,7 +293,9 @@ const VoiceCallRealtimeAgentContextConfigSchema = z
     /** Include selected workspace files such as SOUL.md and IDENTITY.md. */
     includeWorkspaceFiles: z.boolean().default(true),
     /** Workspace-relative files to include, bounded by maxChars. */
-    files: z.array(z.string().min(1)).default(["SOUL.md", "IDENTITY.md", "USER.md"]),
+    files: z
+      .array(z.string().min(1))
+      .default(["SOUL.md", "IDENTITY.md", "USER.md"]),
   })
   .strict()
   .default({
@@ -338,7 +361,9 @@ const VoiceCallRealtimeConfigSchema = z
     },
     providers: {},
   });
-export type VoiceCallRealtimeConfig = z.infer<typeof VoiceCallRealtimeConfigSchema>;
+export type VoiceCallRealtimeConfig = z.infer<
+  typeof VoiceCallRealtimeConfigSchema
+>;
 
 // -----------------------------------------------------------------------------
 // Streaming Configuration (Realtime Transcription)
@@ -501,7 +526,8 @@ type DeepPartial<T> = T extends SecretInput
       ? { [K in keyof T]?: DeepPartial<T[K]> }
       : T;
 export type VoiceCallConfigInput = DeepPartial<VoiceCallConfig>;
-const TWILIO_AUTH_TOKEN_PATH = "plugins.entries.voice-call.config.twilio.authToken";
+const TWILIO_AUTH_TOKEN_PATH =
+  "plugins.entries.voice-call.config.twilio.authToken";
 
 // -----------------------------------------------------------------------------
 // Configuration Helpers
@@ -544,7 +570,9 @@ function normalizeVoiceCallTtsConfig(
     return undefined;
   }
 
-  return TtsConfigSchema.parse(deepMergeDefined(defaults ?? {}, overrides ?? {}));
+  return TtsConfigSchema.parse(
+    deepMergeDefined(defaults ?? {}, overrides ?? {}),
+  );
 }
 
 function normalizePhoneRouteKey(phone: string | undefined): string {
@@ -576,7 +604,10 @@ export function resolveVoiceCallEffectiveConfig(
   config: VoiceCallConfig,
   phoneOrRouteKey: string | undefined,
 ): VoiceCallEffectiveConfigResult {
-  const numberRouteKey = resolveVoiceCallNumberRouteKey(config, phoneOrRouteKey);
+  const numberRouteKey = resolveVoiceCallNumberRouteKey(
+    config,
+    phoneOrRouteKey,
+  );
   if (!numberRouteKey) {
     return { config };
   }
@@ -605,7 +636,8 @@ function sanitizeVoiceCallProviderConfigs(
   }
   return Object.fromEntries(
     Object.entries(value).filter(
-      (entry): entry is [string, Record<string, unknown>] => entry[1] !== undefined,
+      (entry): entry is [string, Record<string, unknown>] =>
+        entry[1] !== undefined,
     ),
   );
 }
@@ -619,7 +651,10 @@ function sanitizeVoiceCallNumberRoutes(
   return Object.fromEntries(
     Object.entries(value)
       .filter((entry): entry is [string, unknown] => entry[1] !== undefined)
-      .map(([key, route]) => [key, VoiceCallNumberRouteConfigSchema.parse(route)]),
+      .map(([key, route]) => [
+        key,
+        VoiceCallNumberRouteConfigSchema.parse(route),
+      ]),
   );
 }
 
@@ -632,26 +667,33 @@ export function resolveTwilioAuthToken(
   });
 }
 
-export function normalizeVoiceCallConfig(config: VoiceCallConfigInput): VoiceCallConfig {
+export function normalizeVoiceCallConfig(
+  config: VoiceCallConfigInput,
+): VoiceCallConfig {
   const defaults = cloneDefaultVoiceCallConfig();
   const serve = { ...defaults.serve, ...config.serve };
   const streamingProvider = config.streaming?.provider;
   const streamingProviders = sanitizeVoiceCallProviderConfigs(
     config.streaming?.providers ?? defaults.streaming.providers,
   );
-  const realtimeProvider = config.realtime?.provider ?? defaults.realtime.provider;
+  const realtimeProvider =
+    config.realtime?.provider ?? defaults.realtime.provider;
   const realtimeProviders = sanitizeVoiceCallProviderConfigs(
     config.realtime?.providers ?? defaults.realtime.providers,
   );
   const realtimeFastContext = {
     ...defaults.realtime.fastContext,
     ...config.realtime?.fastContext,
-    sources: config.realtime?.fastContext?.sources ?? defaults.realtime.fastContext.sources,
+    sources:
+      config.realtime?.fastContext?.sources ??
+      defaults.realtime.fastContext.sources,
   };
   const realtimeAgentContext = {
     ...defaults.realtime.agentContext,
     ...config.realtime?.agentContext,
-    files: config.realtime?.agentContext?.files ?? defaults.realtime.agentContext.files,
+    files:
+      config.realtime?.agentContext?.files ??
+      defaults.realtime.agentContext.files,
   };
   return {
     ...defaults,
@@ -667,9 +709,12 @@ export function normalizeVoiceCallConfig(config: VoiceCallConfigInput): VoiceCal
     webhookSecurity: {
       ...defaults.webhookSecurity,
       ...config.webhookSecurity,
-      allowedHosts: config.webhookSecurity?.allowedHosts ?? defaults.webhookSecurity.allowedHosts,
+      allowedHosts:
+        config.webhookSecurity?.allowedHosts ??
+        defaults.webhookSecurity.allowedHosts,
       trustedProxyIPs:
-        config.webhookSecurity?.trustedProxyIPs ?? defaults.webhookSecurity.trustedProxyIPs,
+        config.webhookSecurity?.trustedProxyIPs ??
+        defaults.webhookSecurity.trustedProxyIPs,
     },
     streaming: {
       ...defaults.streaming,
@@ -683,9 +728,12 @@ export function normalizeVoiceCallConfig(config: VoiceCallConfigInput): VoiceCal
       provider: realtimeProvider,
       streamPath:
         config.realtime?.streamPath ??
-        defaultRealtimeStreamPathForServePath(serve.path ?? defaults.serve.path),
+        defaultRealtimeStreamPathForServePath(
+          serve.path ?? defaults.serve.path,
+        ),
       tools:
-        (config.realtime?.tools as RealtimeToolConfig[] | undefined) ?? defaults.realtime.tools,
+        (config.realtime?.tools as RealtimeToolConfig[] | undefined) ??
+        defaults.realtime.tools,
       fastContext: realtimeFastContext,
       agentContext: realtimeAgentContext,
       providers: realtimeProviders,
@@ -708,37 +756,47 @@ export function resolveVoiceCallSessionKey(params: {
     return `voice:call:${params.callId}`;
   }
   const normalizedPhone = params.phone?.replace(/\D/g, "");
-  return normalizedPhone ? `voice:${normalizedPhone}` : `voice:${params.callId}`;
+  return normalizedPhone
+    ? `voice:${normalizedPhone}`
+    : `voice:${params.callId}`;
 }
 
 /**
  * Resolves the configuration by merging environment variables into missing fields.
  * Returns a new configuration object with environment variables applied.
  */
-export function resolveVoiceCallConfig(config: VoiceCallConfigInput): VoiceCallConfig {
+export function resolveVoiceCallConfig(
+  config: VoiceCallConfigInput,
+): VoiceCallConfig {
   const resolved = normalizeVoiceCallConfig(config);
 
   // Telnyx
   if (resolved.provider === "telnyx") {
     resolved.telnyx = resolved.telnyx ?? {};
-    resolved.telnyx.apiKey = resolved.telnyx.apiKey ?? process.env.TELNYX_API_KEY;
-    resolved.telnyx.connectionId = resolved.telnyx.connectionId ?? process.env.TELNYX_CONNECTION_ID;
-    resolved.telnyx.publicKey = resolved.telnyx.publicKey ?? process.env.TELNYX_PUBLIC_KEY;
+    resolved.telnyx.apiKey =
+      resolved.telnyx.apiKey ?? process.env.TELNYX_API_KEY;
+    resolved.telnyx.connectionId =
+      resolved.telnyx.connectionId ?? process.env.TELNYX_CONNECTION_ID;
+    resolved.telnyx.publicKey =
+      resolved.telnyx.publicKey ?? process.env.TELNYX_PUBLIC_KEY;
   }
 
   // Twilio
   if (resolved.provider === "twilio") {
     resolved.fromNumber = resolved.fromNumber ?? process.env.TWILIO_FROM_NUMBER;
     resolved.twilio = resolved.twilio ?? {};
-    resolved.twilio.accountSid = resolved.twilio.accountSid ?? process.env.TWILIO_ACCOUNT_SID;
-    resolved.twilio.authToken = resolved.twilio.authToken ?? process.env.TWILIO_AUTH_TOKEN;
+    resolved.twilio.accountSid =
+      resolved.twilio.accountSid ?? process.env.TWILIO_ACCOUNT_SID;
+    resolved.twilio.authToken =
+      resolved.twilio.authToken ?? process.env.TWILIO_AUTH_TOKEN;
   }
 
   // Plivo
   if (resolved.provider === "plivo") {
     resolved.plivo = resolved.plivo ?? {};
     resolved.plivo.authId = resolved.plivo.authId ?? process.env.PLIVO_AUTH_ID;
-    resolved.plivo.authToken = resolved.plivo.authToken ?? process.env.PLIVO_AUTH_TOKEN;
+    resolved.plivo.authToken =
+      resolved.plivo.authToken ?? process.env.PLIVO_AUTH_TOKEN;
   }
 
   // Tunnel Config
@@ -748,8 +806,10 @@ export function resolveVoiceCallConfig(config: VoiceCallConfigInput): VoiceCallC
   };
   resolved.tunnel.allowNgrokFreeTierLoopbackBypass =
     resolved.tunnel.allowNgrokFreeTierLoopbackBypass ?? false;
-  resolved.tunnel.ngrokAuthToken = resolved.tunnel.ngrokAuthToken ?? process.env.NGROK_AUTHTOKEN;
-  resolved.tunnel.ngrokDomain = resolved.tunnel.ngrokDomain ?? process.env.NGROK_DOMAIN;
+  resolved.tunnel.ngrokAuthToken =
+    resolved.tunnel.ngrokAuthToken ?? process.env.NGROK_AUTHTOKEN;
+  resolved.tunnel.ngrokDomain =
+    resolved.tunnel.ngrokDomain ?? process.env.NGROK_DOMAIN;
 
   // Webhook Security Config
   resolved.webhookSecurity = resolved.webhookSecurity ?? {
@@ -757,10 +817,12 @@ export function resolveVoiceCallConfig(config: VoiceCallConfigInput): VoiceCallC
     trustForwardingHeaders: false,
     trustedProxyIPs: [],
   };
-  resolved.webhookSecurity.allowedHosts = resolved.webhookSecurity.allowedHosts ?? [];
+  resolved.webhookSecurity.allowedHosts =
+    resolved.webhookSecurity.allowedHosts ?? [];
   resolved.webhookSecurity.trustForwardingHeaders =
     resolved.webhookSecurity.trustForwardingHeaders ?? false;
-  resolved.webhookSecurity.trustedProxyIPs = resolved.webhookSecurity.trustedProxyIPs ?? [];
+  resolved.webhookSecurity.trustedProxyIPs =
+    resolved.webhookSecurity.trustedProxyIPs ?? [];
 
   return normalizeVoiceCallConfig(resolved);
 }

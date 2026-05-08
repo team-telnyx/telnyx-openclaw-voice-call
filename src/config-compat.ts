@@ -1,4 +1,7 @@
-import { asOptionalRecord, readStringField } from "openclaw/plugin-sdk/text-runtime";
+import {
+  asOptionalRecord,
+  readStringField,
+} from "openclaw/plugin-sdk/text-runtime";
 import type { VoiceCallConfig } from "./config.js";
 import { VoiceCallConfigSchema } from "./config.js";
 
@@ -13,7 +16,10 @@ type VoiceCallLegacyConfigIssue = {
 const asObject = asOptionalRecord;
 const getString = readStringField;
 
-function getNumber(obj: Record<string, unknown> | undefined, key: string): number | undefined {
+function getNumber(
+  obj: Record<string, unknown> | undefined,
+  key: string,
+): number | undefined {
   const value = obj?.[key];
   return typeof value === "number" ? value : undefined;
 }
@@ -38,7 +44,9 @@ function mergeProviderConfig(
   };
 }
 
-export function collectVoiceCallLegacyConfigIssues(value: unknown): VoiceCallLegacyConfigIssue[] {
+export function collectVoiceCallLegacyConfigIssues(
+  value: unknown,
+): VoiceCallLegacyConfigIssue[] {
   const raw = asObject(value) ?? {};
   const twilio = asObject(raw.twilio);
   const streaming = asObject(raw.streaming);
@@ -69,7 +77,8 @@ export function collectVoiceCallLegacyConfigIssues(value: unknown): VoiceCallLeg
     issues.push({
       path: "streaming.openaiApiKey",
       replacement: "streaming.providers.openai.apiKey",
-      message: "Move streaming.openaiApiKey to streaming.providers.openai.apiKey.",
+      message:
+        "Move streaming.openaiApiKey to streaming.providers.openai.apiKey.",
     });
   }
   if (typeof streaming?.sttModel === "string") {
@@ -83,14 +92,16 @@ export function collectVoiceCallLegacyConfigIssues(value: unknown): VoiceCallLeg
     issues.push({
       path: "streaming.silenceDurationMs",
       replacement: "streaming.providers.openai.silenceDurationMs",
-      message: "Move streaming.silenceDurationMs to streaming.providers.openai.silenceDurationMs.",
+      message:
+        "Move streaming.silenceDurationMs to streaming.providers.openai.silenceDurationMs.",
     });
   }
   if (typeof streaming?.vadThreshold === "number") {
     issues.push({
       path: "streaming.vadThreshold",
       replacement: "streaming.providers.openai.vadThreshold",
-      message: "Move streaming.vadThreshold to streaming.providers.openai.vadThreshold.",
+      message:
+        "Move streaming.vadThreshold to streaming.providers.openai.vadThreshold.",
     });
   }
 
@@ -110,7 +121,8 @@ export function formatVoiceCallLegacyConfigWarnings(params: {
   return [
     `[voice-call] legacy config keys detected under ${params.configPathPrefix}; runtime loading will not rewrite them, and support for the legacy shape will be removed in ${VOICE_CALL_LEGACY_CONFIG_REMOVAL_VERSION}. Run "${params.doctorFixCommand}".`,
     ...issues.map(
-      (issue) => `[voice-call] ${params.configPathPrefix}.${issue.path}: ${issue.message}`,
+      (issue) =>
+        `[voice-call] ${params.configPathPrefix}.${issue.path}: ${issue.message}`,
     ),
   ];
 }
@@ -126,7 +138,8 @@ export function migrateVoiceCallLegacyConfigInput(params: {
   const raw = asObject(params.value) ?? {};
   const twilio = asObject(raw.twilio);
   const streaming = asObject(raw.streaming);
-  const configPathPrefix = params.configPathPrefix ?? "plugins.entries.voice-call.config";
+  const configPathPrefix =
+    params.configPathPrefix ?? "plugins.entries.voice-call.config";
   const issues = collectVoiceCallLegacyConfigIssues(raw);
 
   const legacyStreamingOpenAICompat: Record<string, unknown> = {};
@@ -153,7 +166,11 @@ export function migrateVoiceCallLegacyConfigInput(params: {
     ? {
         ...streaming,
         provider: streamingProvider ?? legacyStreamingProvider,
-        providers: mergeProviderConfig(streaming.providers, "openai", legacyStreamingOpenAICompat),
+        providers: mergeProviderConfig(
+          streaming.providers,
+          "openai",
+          legacyStreamingOpenAICompat,
+        ),
       }
     : undefined;
 
@@ -177,7 +194,9 @@ export function migrateVoiceCallLegacyConfigInput(params: {
   const config = {
     ...raw,
     provider: raw.provider === "log" ? "mock" : raw.provider,
-    fromNumber: raw.fromNumber ?? (typeof twilio?.from === "string" ? twilio.from : undefined),
+    fromNumber:
+      raw.fromNumber ??
+      (typeof twilio?.from === "string" ? twilio.from : undefined),
     twilio: normalizedTwilio,
     streaming: normalizedStreaming,
   };
@@ -187,7 +206,9 @@ export function migrateVoiceCallLegacyConfigInput(params: {
     changes.push(`Moved ${configPathPrefix}.provider "log" → "mock".`);
   }
   if (typeof twilio?.from === "string" && typeof raw.fromNumber !== "string") {
-    changes.push(`Moved ${configPathPrefix}.twilio.from → ${configPathPrefix}.fromNumber.`);
+    changes.push(
+      `Moved ${configPathPrefix}.twilio.from → ${configPathPrefix}.fromNumber.`,
+    );
   }
   if (typeof streaming?.sttProvider === "string") {
     changes.push(
@@ -218,10 +239,14 @@ export function migrateVoiceCallLegacyConfigInput(params: {
   return { config, changes, issues };
 }
 
-export function normalizeVoiceCallLegacyConfigInput(value: unknown): Record<string, unknown> {
+export function normalizeVoiceCallLegacyConfigInput(
+  value: unknown,
+): Record<string, unknown> {
   return migrateVoiceCallLegacyConfigInput({ value }).config;
 }
 
 export function parseVoiceCallPluginConfig(value: unknown): VoiceCallConfig {
-  return VoiceCallConfigSchema.parse(normalizeVoiceCallLegacyConfigInput(value));
+  return VoiceCallConfigSchema.parse(
+    normalizeVoiceCallLegacyConfigInput(value),
+  );
 }

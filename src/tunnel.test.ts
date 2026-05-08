@@ -34,7 +34,12 @@ vi.mock("./webhook/tailscale.js", () => ({
   getTailscaleDnsName: mocks.getTailscaleDnsName,
 }));
 
-import { isNgrokAvailable, startNgrokTunnel, startTailscaleTunnel, startTunnel } from "./tunnel.js";
+import {
+  isNgrokAvailable,
+  startNgrokTunnel,
+  startTailscaleTunnel,
+  startTunnel,
+} from "./tunnel.js";
 
 function nextProcess(): FakeChildProcess {
   const proc = new FakeChildProcess();
@@ -43,7 +48,10 @@ function nextProcess(): FakeChildProcess {
 }
 
 function emitNgrokUrl(proc: FakeChildProcess, url: string): void {
-  proc.stdout.emit("data", Buffer.from(`${JSON.stringify({ msg: "started tunnel", url })}\n`));
+  proc.stdout.emit(
+    "data",
+    Buffer.from(`${JSON.stringify({ msg: "started tunnel", url })}\n`),
+  );
 }
 
 describe("voice-call tunnels", () => {
@@ -58,7 +66,11 @@ describe("voice-call tunnels", () => {
     proc.close(0);
 
     await expect(result).resolves.toBe(true);
-    expect(mocks.spawn).toHaveBeenCalledWith("ngrok", ["version"], expect.any(Object));
+    expect(mocks.spawn).toHaveBeenCalledWith(
+      "ngrok",
+      ["version"],
+      expect.any(Object),
+    );
   });
 
   it("treats ngrok spawn failures as unavailable", async () => {
@@ -152,10 +164,16 @@ describe("voice-call tunnels", () => {
   });
 
   it("dispatches tunnel providers from config", async () => {
-    await expect(startTunnel({ provider: "none", port: 3334, path: "/hook" })).resolves.toBeNull();
+    await expect(
+      startTunnel({ provider: "none", port: 3334, path: "/hook" }),
+    ).resolves.toBeNull();
 
     const proc = nextProcess();
-    const result = startTunnel({ provider: "ngrok", port: 3334, path: "/hook" });
+    const result = startTunnel({
+      provider: "ngrok",
+      port: 3334,
+      path: "/hook",
+    });
     emitNgrokUrl(proc, "https://dispatch.ngrok.io");
 
     await expect(result).resolves.toMatchObject({

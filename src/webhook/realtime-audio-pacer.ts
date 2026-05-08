@@ -45,9 +45,16 @@ export class RealtimeTwilioAudioPacer {
     if (this.closed || muLaw.length === 0) {
       return;
     }
-    const maxQueuedAudioBytes = this.params.maxQueuedAudioBytes ?? DEFAULT_MAX_QUEUED_AUDIO_BYTES;
-    for (let offset = 0; offset < muLaw.length; offset += TELEPHONY_CHUNK_BYTES) {
-      const chunk = Buffer.from(muLaw.subarray(offset, offset + TELEPHONY_CHUNK_BYTES));
+    const maxQueuedAudioBytes =
+      this.params.maxQueuedAudioBytes ?? DEFAULT_MAX_QUEUED_AUDIO_BYTES;
+    for (
+      let offset = 0;
+      offset < muLaw.length;
+      offset += TELEPHONY_CHUNK_BYTES
+    ) {
+      const chunk = Buffer.from(
+        muLaw.subarray(offset, offset + TELEPHONY_CHUNK_BYTES),
+      );
       if (this.queuedAudioBytes + chunk.length > maxQueuedAudioBytes) {
         this.failBackpressure();
         return;
@@ -55,7 +62,10 @@ export class RealtimeTwilioAudioPacer {
       this.queue.push({
         type: "audio",
         chunk,
-        durationMs: Math.max(1, Math.round((chunk.length / TELEPHONY_SAMPLE_RATE) * 1000)),
+        durationMs: Math.max(
+          1,
+          Math.round((chunk.length / TELEPHONY_SAMPLE_RATE) * 1000),
+        ),
       });
       this.queuedAudioBytes += chunk.length;
     }
@@ -79,7 +89,10 @@ export class RealtimeTwilioAudioPacer {
     this.queue = [];
     this.queuedAudioBytes = 0;
     if (this.params.provider !== "telnyx") {
-      this.params.sendJson({ event: "clear", streamSid: this.params.streamSid });
+      this.params.sendJson({
+        event: "clear",
+        streamSid: this.params.streamSid,
+      });
     }
     return clearedAudioBytes;
   }
@@ -123,7 +136,10 @@ export class RealtimeTwilioAudioPacer {
     let delayMs = 0;
     let sent = true;
     if (item.type === "audio") {
-      this.queuedAudioBytes = Math.max(0, this.queuedAudioBytes - item.chunk.length);
+      this.queuedAudioBytes = Math.max(
+        0,
+        this.queuedAudioBytes - item.chunk.length,
+      );
       sent = this.params.sendJson(
         this.params.provider === "telnyx"
           ? {
@@ -165,7 +181,8 @@ export function calculateMulawRms(muLaw: Buffer): number {
   }
   let sum = 0;
   for (let i = 0; i < muLaw.length; i += 1) {
-    const normalized = (MULAW_LINEAR_SAMPLES[muLaw[i] ?? 0] ?? 0) / PCM16_MAX_AMPLITUDE;
+    const normalized =
+      (MULAW_LINEAR_SAMPLES[muLaw[i] ?? 0] ?? 0) / PCM16_MAX_AMPLITUDE;
     sum += normalized * normalized;
   }
   return Math.sqrt(sum / muLaw.length);
@@ -190,7 +207,8 @@ export class RealtimeMulawSpeechStartDetector {
     if (rms >= threshold) {
       this.quietChunks = 0;
       this.loudChunks += 1;
-      const requiredLoudChunks = this.params.requiredLoudChunks ?? DEFAULT_REQUIRED_LOUD_CHUNKS;
+      const requiredLoudChunks =
+        this.params.requiredLoudChunks ?? DEFAULT_REQUIRED_LOUD_CHUNKS;
       if (!this.speaking && this.loudChunks >= requiredLoudChunks) {
         this.speaking = true;
         return true;
@@ -200,7 +218,8 @@ export class RealtimeMulawSpeechStartDetector {
 
     this.loudChunks = 0;
     this.quietChunks += 1;
-    const requiredQuietChunks = this.params.requiredQuietChunks ?? DEFAULT_REQUIRED_QUIET_CHUNKS;
+    const requiredQuietChunks =
+      this.params.requiredQuietChunks ?? DEFAULT_REQUIRED_QUIET_CHUNKS;
     if (this.quietChunks >= requiredQuietChunks) {
       this.speaking = false;
     }

@@ -5,7 +5,9 @@ import { createTestStorePath, FakeProvider } from "./manager.test-harness.js";
 import type { WebhookContext, WebhookParseOptions } from "./types.js";
 import { VoiceCallWebhookServer } from "./webhook.js";
 
-const createConfig = (overrides: Partial<VoiceCallConfig> = {}): VoiceCallConfig => {
+const createConfig = (
+  overrides: Partial<VoiceCallConfig> = {},
+): VoiceCallConfig => {
   const base = VoiceCallConfigSchema.parse({
     enabled: true,
     provider: "plivo",
@@ -24,7 +26,11 @@ const createConfig = (overrides: Partial<VoiceCallConfig> = {}): VoiceCallConfig
   };
 };
 
-async function postWebhookForm(server: VoiceCallWebhookServer, baseUrl: string, body: string) {
+async function postWebhookForm(
+  server: VoiceCallWebhookServer,
+  baseUrl: string,
+  body: string,
+) {
   const address = (
     server as unknown as { server?: { address?: () => unknown } }
   ).server?.address?.();
@@ -58,8 +64,16 @@ async function runDuplicateInboundReplayLifecycleTest(provider: FakeProvider) {
 
   try {
     const baseUrl = await server.start();
-    const first = await postWebhookForm(server, baseUrl, "CallSid=CA123&From=%2B15552222222");
-    const second = await postWebhookForm(server, baseUrl, "CallSid=CA123&From=%2B15552222222");
+    const first = await postWebhookForm(
+      server,
+      baseUrl,
+      "CallSid=CA123&From=%2B15552222222",
+    );
+    const second = await postWebhookForm(
+      server,
+      baseUrl,
+      "CallSid=CA123&From=%2B15552222222",
+    );
     return { first, second, manager };
   } finally {
     await server.stop();
@@ -81,7 +95,9 @@ function expectSingleRejectedReplayHangup(params: {
       reason: "hangup-bot",
     }),
   );
-  expect(params.manager.getCallByProviderCallId("provider-inbound-1")).toBeUndefined();
+  expect(
+    params.manager.getCallByProviderCallId("provider-inbound-1"),
+  ).toBeUndefined();
 }
 
 class RejectInboundReplayProvider extends FakeProvider {
@@ -89,7 +105,10 @@ class RejectInboundReplayProvider extends FakeProvider {
     return { ok: true, verifiedRequestKey: "verified:req:reject-once" };
   }
 
-  override parseWebhookEvent(_ctx: WebhookContext, options?: WebhookParseOptions) {
+  override parseWebhookEvent(
+    _ctx: WebhookContext,
+    options?: WebhookParseOptions,
+  ) {
     return {
       statusCode: 200,
       events: [
@@ -110,7 +129,9 @@ class RejectInboundReplayProvider extends FakeProvider {
 }
 
 class RejectInboundReplayWithHangupFailureProvider extends RejectInboundReplayProvider {
-  override async hangupCall(input: Parameters<FakeProvider["hangupCall"]>[0]): Promise<void> {
+  override async hangupCall(
+    input: Parameters<FakeProvider["hangupCall"]>[0],
+  ): Promise<void> {
     this.hangupCalls.push(input);
     throw new Error("hangup failed");
   }
@@ -123,13 +144,15 @@ describe("Voice-call webhook hangup-once lifecycle", () => {
 
   it("hangs up a rejected inbound replay only once across duplicate webhook delivery", async () => {
     const provider = new RejectInboundReplayProvider("plivo");
-    const { first, second, manager } = await runDuplicateInboundReplayLifecycleTest(provider);
+    const { first, second, manager } =
+      await runDuplicateInboundReplayLifecycleTest(provider);
     expectSingleRejectedReplayHangup({ first, second, provider, manager });
   });
 
   it("does not attempt a second hangup when replay arrives after the first hangup fails", async () => {
     const provider = new RejectInboundReplayWithHangupFailureProvider("plivo");
-    const { first, second, manager } = await runDuplicateInboundReplayLifecycleTest(provider);
+    const { first, second, manager } =
+      await runDuplicateInboundReplayLifecycleTest(provider);
     expectSingleRejectedReplayHangup({ first, second, provider, manager });
   });
 });

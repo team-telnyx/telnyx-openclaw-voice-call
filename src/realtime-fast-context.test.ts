@@ -7,7 +7,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("openclaw/plugin-sdk/realtime-voice", () => ({
-  resolveRealtimeVoiceFastContextConsult: mocks.resolveRealtimeVoiceFastContextConsult,
+  resolveRealtimeVoiceFastContextConsult:
+    mocks.resolveRealtimeVoiceFastContextConsult,
 }));
 
 import { resolveRealtimeFastContextConsult } from "./realtime-fast-context.js";
@@ -45,7 +46,9 @@ describe("resolveRealtimeFastContextConsult", () => {
 
   it("passes voice-call labels into the SDK fast context resolver", async () => {
     const logger = createLogger();
-    mocks.resolveRealtimeVoiceFastContextConsult.mockResolvedValue({ handled: false });
+    mocks.resolveRealtimeVoiceFastContextConsult.mockResolvedValue({
+      handled: false,
+    });
 
     await expect(
       resolveRealtimeFastContextConsult({

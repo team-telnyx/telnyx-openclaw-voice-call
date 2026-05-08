@@ -10,10 +10,17 @@ import type { VoiceCallRealtimeConfig } from "../config.js";
 import type { CallManager } from "../manager.js";
 import type { VoiceCallProvider } from "../providers/base.js";
 import type { CallRecord } from "../types.js";
-import { connectWs, startUpgradeWsServer, waitForClose } from "../websocket-test-support.js";
+import {
+  connectWs,
+  startUpgradeWsServer,
+  waitForClose,
+} from "../websocket-test-support.js";
 import { RealtimeCallHandler } from "./realtime-handler.js";
 
-function makeRequest(url: string, host = "gateway.ts.net"): http.IncomingMessage {
+function makeRequest(
+  url: string,
+  host = "gateway.ts.net",
+): http.IncomingMessage {
   const req = new http.IncomingMessage(null as never);
   req.url = url;
   req.method = "POST";
@@ -21,7 +28,9 @@ function makeRequest(url: string, host = "gateway.ts.net"): http.IncomingMessage
   return req;
 }
 
-function makeBridge(overrides: Partial<RealtimeVoiceBridge> = {}): RealtimeVoiceBridge {
+function makeBridge(
+  overrides: Partial<RealtimeVoiceBridge> = {},
+): RealtimeVoiceBridge {
   return {
     connect: async () => {},
     sendAudio: () => {},
@@ -127,7 +136,9 @@ const startRealtimeServer = async (
 describe("RealtimeCallHandler path routing", () => {
   it("uses the request host and stream path in TwiML", () => {
     const handler = makeHandler();
-    const payload = handler.buildTwiMLPayload(makeRequest("/voice/webhook", "gateway.ts.net"));
+    const payload = handler.buildTwiMLPayload(
+      makeRequest("/voice/webhook", "gateway.ts.net"),
+    );
 
     expect(payload.statusCode).toBe(200);
     expect(payload.body).toMatch(
@@ -138,7 +149,9 @@ describe("RealtimeCallHandler path routing", () => {
   it("preserves a public path prefix ahead of serve.path", () => {
     const handler = makeHandler({ streamPath: "/custom/stream/realtime" });
     handler.setPublicUrl("https://public.example/api/voice/webhook");
-    const payload = handler.buildTwiMLPayload(makeRequest("/voice/webhook", "127.0.0.1:3334"));
+    const payload = handler.buildTwiMLPayload(
+      makeRequest("/voice/webhook", "127.0.0.1:3334"),
+    );
 
     expect(handler.getStreamPathPattern()).toBe("/api/custom/stream/realtime");
     expect(payload.body).toMatch(
@@ -206,7 +219,10 @@ describe("RealtimeCallHandler path routing", () => {
           }),
         );
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }
@@ -291,7 +307,10 @@ describe("RealtimeCallHandler path routing", () => {
           }),
         );
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }
@@ -353,7 +372,10 @@ describe("RealtimeCallHandler path routing", () => {
 
         expect(triggerGreeting).not.toHaveBeenCalled();
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }
@@ -401,12 +423,19 @@ describe("RealtimeCallHandler path routing", () => {
           expect(createBridge).toHaveBeenCalled();
         });
 
-        expect(handler.speak("call-1", "Say exactly: hello from Meet.")).toEqual({
+        expect(
+          handler.speak("call-1", "Say exactly: hello from Meet."),
+        ).toEqual({
           success: true,
         });
-        expect(triggerGreeting).toHaveBeenCalledWith("Say exactly: hello from Meet.");
+        expect(triggerGreeting).toHaveBeenCalledWith(
+          "Say exactly: hello from Meet.",
+        );
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }
@@ -482,7 +511,10 @@ describe("RealtimeCallHandler path routing", () => {
           );
         });
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }
@@ -501,7 +533,11 @@ describe("RealtimeCallHandler path routing", () => {
             detail?: string;
           }) => void;
           onReady?: () => void;
-          onTranscript?: (role: "user" | "assistant", text: string, isFinal: boolean) => void;
+          onTranscript?: (
+            role: "user" | "assistant",
+            text: string,
+            isFinal: boolean,
+          ) => void;
         }
       | undefined;
     const sendAudio = vi.fn();
@@ -589,7 +625,10 @@ describe("RealtimeCallHandler path routing", () => {
         });
         expect(call.metadata?.lastTalkEventType).toBe("turn.ended");
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }
@@ -647,8 +686,12 @@ describe("RealtimeCallHandler path routing", () => {
 
         callbacks?.onAudio?.(Buffer.from([1, 2, 3]));
         const speechPayload = Buffer.alloc(160, 0x00).toString("base64");
-        ws.send(JSON.stringify({ event: "media", media: { payload: speechPayload } }));
-        ws.send(JSON.stringify({ event: "media", media: { payload: speechPayload } }));
+        ws.send(
+          JSON.stringify({ event: "media", media: { payload: speechPayload } }),
+        );
+        ws.send(
+          JSON.stringify({ event: "media", media: { payload: speechPayload } }),
+        );
 
         await vi.waitFor(() => {
           expect(sendAudio).toHaveBeenCalledTimes(2);
@@ -660,15 +703,21 @@ describe("RealtimeCallHandler path routing", () => {
               type: string;
             }>
           | undefined;
-        const cancelled = recent?.find((event) => event.type === "turn.cancelled");
+        const cancelled = recent?.find(
+          (event) => event.type === "turn.cancelled",
+        );
         expect(cancelled).toMatchObject({
           turnId: expect.stringMatching(/^turn-\d+$/),
         });
-        expect(recent?.findLast((event) => event.type === "input.audio.delta")?.turnId).not.toBe(
-          cancelled?.turnId,
-        );
+        expect(
+          recent?.findLast((event) => event.type === "input.audio.delta")
+            ?.turnId,
+        ).not.toBe(cancelled?.turnId);
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }
@@ -686,7 +735,11 @@ describe("RealtimeCallHandler path routing", () => {
             name: string;
             args: unknown;
           }) => void;
-          onTranscript?: (role: "user" | "assistant", text: string, isFinal: boolean) => void;
+          onTranscript?: (
+            role: "user" | "assistant",
+            text: string,
+            isFinal: boolean,
+          ) => void;
         }
       | undefined;
     let resolveConsult: ((value: unknown) => void) | undefined;
@@ -723,12 +776,15 @@ describe("RealtimeCallHandler path routing", () => {
       },
       realtimeProvider: makeRealtimeProvider(createBridge),
     });
-    handler.registerToolHandler("openclaw_agent_consult", (_args, _callId, context) => {
-      receivedPartialTranscript = context.partialUserTranscript;
-      return new Promise((resolve) => {
-        resolveConsult = resolve;
-      });
-    });
+    handler.registerToolHandler(
+      "openclaw_agent_consult",
+      (_args, _callId, context) => {
+        receivedPartialTranscript = context.partialUserTranscript;
+        return new Promise((resolve) => {
+          resolveConsult = resolve;
+        });
+      },
+    );
     handler.registerToolHandler("custom_lookup", async () => ({ ok: true }));
     const server = await startRealtimeServer(handler);
 
@@ -789,13 +845,24 @@ describe("RealtimeCallHandler path routing", () => {
         });
 
         await vi.waitFor(() => {
-          expect(submitToolResult).toHaveBeenCalledWith("custom-call", { ok: true }, undefined);
+          expect(submitToolResult).toHaveBeenCalledWith(
+            "custom-call",
+            { ok: true },
+            undefined,
+          );
         });
-        expect(submitToolResult).not.toHaveBeenCalledWith("custom-call", expect.anything(), {
-          willContinue: true,
-        });
+        expect(submitToolResult).not.toHaveBeenCalledWith(
+          "custom-call",
+          expect.anything(),
+          {
+            willContinue: true,
+          },
+        );
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }
@@ -807,7 +874,11 @@ describe("RealtimeCallHandler path routing", () => {
   it("forces an agent consult from final user transcript when consult policy is always", async () => {
     let callbacks:
       | {
-          onTranscript?: (role: "user" | "assistant", text: string, isFinal: boolean) => void;
+          onTranscript?: (
+            role: "user" | "assistant",
+            text: string,
+            isFinal: boolean,
+          ) => void;
         }
       | undefined;
     const sendUserMessage = vi.fn();
@@ -841,7 +912,9 @@ describe("RealtimeCallHandler path routing", () => {
         realtimeProvider: makeRealtimeProvider(createBridge),
       },
     );
-    const consult = vi.fn(async () => ({ text: "I created the smoke test file." }));
+    const consult = vi.fn(async () => ({
+      text: "I created the smoke test file.",
+    }));
     handler.registerToolHandler("openclaw_agent_consult", consult);
     const server = await startRealtimeServer(handler);
 
@@ -858,7 +931,11 @@ describe("RealtimeCallHandler path routing", () => {
           expect(createBridge).toHaveBeenCalled();
         });
 
-        callbacks?.onTranscript?.("user", "Create a smoke test file for me.", true);
+        callbacks?.onTranscript?.(
+          "user",
+          "Create a smoke test file for me.",
+          true,
+        );
 
         await vi.waitFor(() => {
           expect(consult).toHaveBeenCalledWith(
@@ -875,7 +952,10 @@ describe("RealtimeCallHandler path routing", () => {
           );
         });
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }
@@ -887,7 +967,11 @@ describe("RealtimeCallHandler path routing", () => {
   it("does not carry a final transcript into the next direct voice turn", async () => {
     let callbacks:
       | {
-          onTranscript?: (role: "user" | "assistant", text: string, isFinal: boolean) => void;
+          onTranscript?: (
+            role: "user" | "assistant",
+            text: string,
+            isFinal: boolean,
+          ) => void;
         }
       | undefined;
     const processEvent = vi.fn();
@@ -955,7 +1039,10 @@ describe("RealtimeCallHandler path routing", () => {
           }),
         );
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }
@@ -968,7 +1055,11 @@ describe("RealtimeCallHandler path routing", () => {
     let callbacks:
       | {
           onToolCall?: (event: RealtimeVoiceToolCallEvent) => void;
-          onTranscript?: (role: "user" | "assistant", text: string, isFinal: boolean) => void;
+          onTranscript?: (
+            role: "user" | "assistant",
+            text: string,
+            isFinal: boolean,
+          ) => void;
         }
       | undefined;
     const submitToolResult = vi.fn();
@@ -1034,7 +1125,9 @@ describe("RealtimeCallHandler path routing", () => {
             expect(consult).toHaveBeenCalledWith(
               expect.objectContaining({
                 question: "Send a Discord message.",
-                context: expect.stringContaining("shorter consult question: message"),
+                context: expect.stringContaining(
+                  "shorter consult question: message",
+                ),
               }),
               "call-1",
               { partialUserTranscript: "Send a Discord message." },
@@ -1050,7 +1143,10 @@ describe("RealtimeCallHandler path routing", () => {
           );
         });
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }
@@ -1063,7 +1159,11 @@ describe("RealtimeCallHandler path routing", () => {
     let callbacks:
       | {
           onToolCall?: (event: RealtimeVoiceToolCallEvent) => void;
-          onTranscript?: (role: "user" | "assistant", text: string, isFinal: boolean) => void;
+          onTranscript?: (
+            role: "user" | "assistant",
+            text: string,
+            isFinal: boolean,
+          ) => void;
         }
       | undefined;
     const submitToolResult = vi.fn();
@@ -1135,7 +1235,10 @@ describe("RealtimeCallHandler path routing", () => {
         await new Promise((resolve) => setTimeout(resolve, 250));
         expect(consult).toHaveBeenCalledTimes(1);
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }
@@ -1192,7 +1295,9 @@ describe("RealtimeCallHandler path routing", () => {
         realtimeProvider: makeRealtimeProvider(createBridge),
       },
     );
-    handler.registerToolHandler("openclaw_agent_consult", async () => ({ text: "Fast context." }));
+    handler.registerToolHandler("openclaw_agent_consult", async () => ({
+      text: "Fast context.",
+    }));
     const server = await startRealtimeServer(handler);
 
     try {
@@ -1224,7 +1329,10 @@ describe("RealtimeCallHandler path routing", () => {
         });
         expect(submitToolResult).toHaveBeenCalledTimes(1);
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }
@@ -1289,7 +1397,10 @@ describe("RealtimeCallHandler websocket hardening", () => {
 
         expect(closed.code).toBe(1013);
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }
@@ -1332,7 +1443,10 @@ describe("RealtimeCallHandler websocket hardening", () => {
         expect(processEvent).not.toHaveBeenCalled();
         expect(getCallByProviderCallId).not.toHaveBeenCalled();
       } finally {
-        if (ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) {
+        if (
+          ws.readyState !== WebSocket.CLOSED &&
+          ws.readyState !== WebSocket.CLOSING
+        ) {
           ws.close();
         }
       }

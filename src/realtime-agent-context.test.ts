@@ -10,16 +10,22 @@ import { createVoiceCallBaseConfig } from "./test-fixtures.js";
 const tempDirs: string[] = [];
 
 afterEach(async () => {
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+  await Promise.all(
+    tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
+  );
 });
 
 async function createWorkspace(): Promise<string> {
-  const workspaceDir = await mkdtemp(path.join(tmpdir(), "openclaw-voice-context-"));
+  const workspaceDir = await mkdtemp(
+    path.join(tmpdir(), "openclaw-voice-context-"),
+  );
   tempDirs.push(workspaceDir);
   return workspaceDir;
 }
 
-function createConfig(overrides?: Partial<VoiceCallConfig["realtime"]>): VoiceCallConfig {
+function createConfig(
+  overrides?: Partial<VoiceCallConfig["realtime"]>,
+): VoiceCallConfig {
   const config = createVoiceCallBaseConfig();
   config.agentId = "voice";
   config.realtime.enabled = true;
@@ -30,12 +36,14 @@ function createConfig(overrides?: Partial<VoiceCallConfig["realtime"]>): VoiceCa
     fastContext: {
       ...config.realtime.fastContext,
       ...overrides?.fastContext,
-      sources: overrides?.fastContext?.sources ?? config.realtime.fastContext.sources,
+      sources:
+        overrides?.fastContext?.sources ?? config.realtime.fastContext.sources,
     },
     agentContext: {
       ...config.realtime.agentContext,
       ...overrides?.agentContext,
-      files: overrides?.agentContext?.files ?? config.realtime.agentContext.files,
+      files:
+        overrides?.agentContext?.files ?? config.realtime.agentContext.files,
     },
     tools: overrides?.tools ?? config.realtime.tools,
     providers: overrides?.providers ?? config.realtime.providers,
@@ -59,13 +67,21 @@ function createAgentRuntime(workspaceDir: string): CoreAgentDeps {
 describe("buildRealtimeVoiceInstructions", () => {
   it("injects bounded identity, system prompt, and workspace context", async () => {
     const workspaceDir = await createWorkspace();
-    await writeFile(path.join(workspaceDir, "SOUL.md"), "Stay quick, direct, and warm.\n");
-    await writeFile(path.join(workspaceDir, "IDENTITY.md"), "Name: Claw Voice\nVibe: snappy\n");
+    await writeFile(
+      path.join(workspaceDir, "SOUL.md"),
+      "Stay quick, direct, and warm.\n",
+    );
+    await writeFile(
+      path.join(workspaceDir, "IDENTITY.md"),
+      "Name: Claw Voice\nVibe: snappy\n",
+    );
     await writeFile(path.join(workspaceDir, "SECRET.md"), "do not include\n");
 
     const coreConfig = {
       agents: {
-        list: [{ id: "voice", systemPromptOverride: "Keep spoken answers short." }],
+        list: [
+          { id: "voice", systemPromptOverride: "Keep spoken answers short." },
+        ],
       },
     } as CoreConfig;
 
@@ -88,7 +104,9 @@ describe("buildRealtimeVoiceInstructions", () => {
 
     expect(instructions).toContain("OpenClaw agent voice context:");
     expect(instructions).toContain("Consult behavior:");
-    expect(instructions).toContain("Call openclaw_agent_consult before answering requests");
+    expect(instructions).toContain(
+      "Call openclaw_agent_consult before answering requests",
+    );
     expect(instructions).toContain("- Agent id: voice");
     expect(instructions).toContain("- Name: Claw Voice");
     expect(instructions).toContain("- Vibe: snappy");

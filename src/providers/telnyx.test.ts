@@ -54,17 +54,26 @@ function createSignedTelnyxCtx(params: {
 }
 
 function expectReplayVerification(
-  results: Array<{ ok: boolean; isReplay?: boolean; verifiedRequestKey?: string }>,
+  results: Array<{
+    ok: boolean;
+    isReplay?: boolean;
+    verifiedRequestKey?: string;
+  }>,
 ) {
   expect(results.map((result) => result.ok)).toEqual([true, true]);
-  expect(results.map((result) => Boolean(result.isReplay))).toEqual([false, true]);
+  expect(results.map((result) => Boolean(result.isReplay))).toEqual([
+    false,
+    true,
+  ]);
   const firstResult = results[0];
   if (!firstResult?.verifiedRequestKey) {
     throw new Error("expected Telnyx verification to produce a request key");
   }
   const secondResult = results[1];
   if (!secondResult?.verifiedRequestKey) {
-    throw new Error("expected replayed Telnyx verification to preserve the request key");
+    throw new Error(
+      "expected replayed Telnyx verification to preserve the request key",
+    );
   }
   const firstKey = firstResult.verifiedRequestKey;
   const secondKey = secondResult.verifiedRequestKey;
@@ -138,7 +147,10 @@ describe("TelnyxProvider.verifyWebhook", () => {
 
     const rawPublicKey = decodeBase64Url(requireJwkX(jwk));
     const rawPublicKeyBase64 = rawPublicKey.toString("base64");
-    expectWebhookVerificationSucceeds({ publicKey: rawPublicKeyBase64, privateKey });
+    expectWebhookVerificationSucceeds({
+      publicKey: rawPublicKeyBase64,
+      privateKey,
+    });
   });
 
   it("verifies a valid signature with a DER SPKI public key (Base64)", () => {
@@ -152,7 +164,11 @@ describe("TelnyxProvider.verifyWebhook", () => {
     const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
     const spkiDer = publicKey.export({ format: "der", type: "spki" }) as Buffer;
     const provider = new TelnyxProvider(
-      { apiKey: "KEY123", connectionId: "CONN456", publicKey: spkiDer.toString("base64") },
+      {
+        apiKey: "KEY123",
+        connectionId: "CONN456",
+        publicKey: spkiDer.toString("base64"),
+      },
       { skipVerification: false },
     );
 
@@ -315,7 +331,8 @@ describe("TelnyxProvider realtime streaming", () => {
       publicKey: undefined,
     });
     provider.setRealtimeStreamUrlFactory(
-      (input) => `wss://voice.example.com/voice/stream/realtime/${input.providerCallId}`,
+      (input) =>
+        `wss://voice.example.com/voice/stream/realtime/${input.providerCallId}`,
     );
 
     await provider.startRealtimeStream({
@@ -332,7 +349,8 @@ describe("TelnyxProvider realtime streaming", () => {
           method: "POST",
           body: JSON.stringify({
             command_id: "openclaw-realtime-stream-call-1",
-            stream_url: "wss://voice.example.com/voice/stream/realtime/call-control-1",
+            stream_url:
+              "wss://voice.example.com/voice/stream/realtime/call-control-1",
             stream_track: "both_tracks",
             stream_codec: "PCMU",
             stream_bidirectional_mode: "rtp",

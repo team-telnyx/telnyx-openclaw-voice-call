@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createManagerHarness, FakeProvider, markCallAnswered } from "./manager.test-harness.js";
+import {
+  createManagerHarness,
+  FakeProvider,
+  markCallAnswered,
+} from "./manager.test-harness.js";
 
 function requireCall(
   manager: Awaited<ReturnType<typeof createManagerHarness>>["manager"],
@@ -12,7 +16,9 @@ function requireCall(
   return call;
 }
 
-function requireTurnToken(provider: Awaited<ReturnType<typeof createManagerHarness>>["provider"]) {
+function requireTurnToken(
+  provider: Awaited<ReturnType<typeof createManagerHarness>>["provider"],
+) {
   const firstStart = provider.startListeningCalls[0];
   if (!firstStart?.turnToken) {
     throw new Error("expected closed-loop turn to capture a turn token");
@@ -124,7 +130,9 @@ describe("CallManager closed-loop turns", () => {
 
     const pendingState = await Promise.race([
       turnPromise.then(() => "resolved"),
-      new Promise<"pending">((resolve) => setTimeout(() => resolve("pending"), 0)),
+      new Promise<"pending">((resolve) =>
+        setTimeout(() => resolve("pending"), 0),
+      ),
     ]);
     expect(pendingState).toBe("pending");
 
@@ -144,7 +152,10 @@ describe("CallManager closed-loop turns", () => {
     expect(turnResult.transcript).toBe("final answer");
 
     const call = requireCall(manager, started.callId);
-    expect(call.transcript.map((entry) => entry.text)).toEqual(["Prompt", "final answer"]);
+    expect(call.transcript.map((entry) => entry.text)).toEqual([
+      "Prompt",
+      "final answer",
+    ]);
   });
 
   it("tracks latency metadata across multiple closed-loop turns", async () => {

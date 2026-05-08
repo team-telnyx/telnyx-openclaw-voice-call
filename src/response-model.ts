@@ -17,7 +17,9 @@ export function resolveVoiceResponseModel(params: {
   return {
     modelRef,
     provider:
-      slashIndex === -1 ? params.agentRuntime.defaults.provider : modelRef.slice(0, slashIndex),
+      slashIndex === -1
+        ? params.agentRuntime.defaults.provider
+        : modelRef.slice(0, slashIndex),
     model: slashIndex === -1 ? modelRef : modelRef.slice(slashIndex + 1),
   };
 }

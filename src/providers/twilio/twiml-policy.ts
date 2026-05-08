@@ -54,7 +54,10 @@ export function readTwimlRequestView(ctx: WebhookContext): TwimlRequestView {
 export function decideTwimlResponse(input: TwimlPolicyInput): TwimlDecision {
   if (input.callIdFromQuery && !input.isStatusCallback) {
     if (input.hasStoredTwiml) {
-      return { kind: "stored", consumeStoredTwimlCallId: input.callIdFromQuery };
+      return {
+        kind: "stored",
+        consumeStoredTwimlCallId: input.callIdFromQuery,
+      };
     }
     if (input.isNotifyCall) {
       return { kind: "empty" };

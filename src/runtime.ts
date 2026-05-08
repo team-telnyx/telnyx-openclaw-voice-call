@@ -34,7 +34,10 @@ import {
 } from "./webhook-exposure.js";
 import { VoiceCallWebhookServer } from "./webhook.js";
 import type { ToolHandlerContext } from "./webhook/realtime-handler.js";
-import { cleanupTailscaleExposure, setupTailscaleExposure } from "./webhook/tailscale.js";
+import {
+  cleanupTailscaleExposure,
+  setupTailscaleExposure,
+} from "./webhook/tailscale.js";
 
 export type VoiceCallRuntime = {
   config: VoiceCallConfig;
@@ -75,7 +78,9 @@ let telnyxProviderPromise: Promise<TelnyxProviderModule> | undefined;
 let twilioProviderPromise: Promise<TwilioProviderModule> | undefined;
 let plivoProviderPromise: Promise<PlivoProviderModule> | undefined;
 let mockProviderPromise: Promise<MockProviderModule> | undefined;
-let realtimeVoiceRuntimePromise: Promise<RealtimeVoiceRuntimeModule> | undefined;
+let realtimeVoiceRuntimePromise:
+  | Promise<RealtimeVoiceRuntimeModule>
+  | undefined;
 let realtimeHandlerPromise: Promise<RealtimeHandlerModule> | undefined;
 
 function loadTelnyxProvider(): Promise<TelnyxProviderModule> {
@@ -133,12 +138,12 @@ function mapVoiceCallConsultTranscript(
   },
   context?: ToolHandlerContext,
 ): RealtimeVoiceAgentConsultTranscriptEntry[] {
-  const transcript: RealtimeVoiceAgentConsultTranscriptEntry[] = (call.transcript ?? []).map(
-    (entry) => ({
-      role: entry.speaker === "bot" ? "assistant" : "user",
-      text: entry.text,
-    }),
-  );
+  const transcript: RealtimeVoiceAgentConsultTranscriptEntry[] = (
+    call.transcript ?? []
+  ).map((entry) => ({
+    role: entry.speaker === "bot" ? "assistant" : "user",
+    text: entry.text,
+  }));
   const partial = context?.partialUserTranscript?.trim();
   if (partial && transcript.at(-1)?.text !== partial) {
     transcript.push({ role: "user", text: partial });
@@ -156,7 +161,10 @@ function createRuntimeResourceLifecycle(params: {
   let tunnelResult: TunnelResult | null = null;
   let stopped = false;
 
-  const runStep = async (step: () => Promise<void>, suppressErrors: boolean) => {
+  const runStep = async (
+    step: () => Promise<void>,
+    suppressErrors: boolean,
+  ) => {
     if (suppressErrors) {
       await step().catch(() => {});
       return;
@@ -189,7 +197,9 @@ function createRuntimeResourceLifecycle(params: {
   };
 }
 
-async function resolveProvider(config: VoiceCallConfig): Promise<VoiceCallProvider> {
+async function resolveProvider(
+  config: VoiceCallConfig,
+): Promise<VoiceCallProvider> {
   const allowNgrokFreeTierLoopbackBypass =
     config.tunnel?.provider === "ngrok" &&
     isLoopbackHost(config.serve?.bind ?? "") &&
@@ -220,7 +230,9 @@ async function resolveProvider(config: VoiceCallConfig): Promise<VoiceCallProvid
           allowNgrokFreeTierLoopbackBypass,
           publicUrl: config.publicUrl,
           skipVerification: config.skipSignatureVerification,
-          streamPath: config.streaming?.enabled ? config.streaming.streamPath : undefined,
+          streamPath: config.streaming?.enabled
+            ? config.streaming.streamPath
+            : undefined,
           webhookSecurity: config.webhookSecurity,
         },
       );
@@ -245,7 +257,9 @@ async function resolveProvider(config: VoiceCallConfig): Promise<VoiceCallProvid
       return new MockProvider();
     }
     default:
-      throw new Error(`Unsupported voice-call provider: ${String(config.provider)}`);
+      throw new Error(
+        `Unsupported voice-call provider: ${String(config.provider)}`,
+      );
   }
 }
 
@@ -253,7 +267,8 @@ async function resolveRealtimeProvider(params: {
   config: VoiceCallConfig;
   fullConfig: OpenClawConfig;
 }): Promise<ResolvedRealtimeProvider> {
-  const { resolveConfiguredRealtimeVoiceProvider } = await loadRealtimeVoiceRuntime();
+  const { resolveConfiguredRealtimeVoiceProvider } =
+    await loadRealtimeVoiceRuntime();
   return resolveConfiguredRealtimeVoiceProvider({
     configuredProviderId: params.config.realtime.provider,
     providerConfigs: params.config.realtime.providers,
@@ -269,7 +284,14 @@ export async function createVoiceCallRuntime(params: {
   ttsRuntime?: TelephonyTtsRuntime;
   logger?: Logger;
 }): Promise<VoiceCallRuntime> {
-  const { config: rawConfig, coreConfig, fullConfig, agentRuntime, ttsRuntime, logger } = params;
+  const {
+    config: rawConfig,
+    coreConfig,
+    fullConfig,
+    agentRuntime,
+    ttsRuntime,
+    logger,
+  } = params;
   const log = logger ?? {
     info: console.log,
     warn: console.warn,
@@ -292,7 +314,9 @@ export async function createVoiceCallRuntime(params: {
 
   const validation = validateProviderConfig(config);
   if (!validation.valid) {
-    throw new Error(`Invalid voice-call config: ${validation.errors.join("; ")}`);
+    throw new Error(
+      `Invalid voice-call config: ${validation.errors.join("; ")}`,
+    );
   }
 
   const provider = await resolveProvider(config);
@@ -348,7 +372,10 @@ export async function createVoiceCallRuntime(params: {
             typeof call.metadata?.numberRouteKey === "string"
               ? call.metadata.numberRouteKey
               : call.to;
-          const effectiveConfig = resolveVoiceCallEffectiveConfig(config, numberRouteKey).config;
+          const effectiveConfig = resolveVoiceCallEffectiveConfig(
+            config,
+            numberRouteKey,
+          ).config;
           const agentId = effectiveConfig.agentId ?? "main";
           const sessionKey = resolveVoiceCallConsultSessionKey({
             ...call,
@@ -421,7 +448,11 @@ export async function createVoiceCallRuntime(params: {
     // Determine public URL - priority: config.publicUrl > tunnel > legacy tailscale
     let publicUrl: string | null = config.publicUrl ?? null;
 
-    if (!publicUrl && config.tunnel?.provider && config.tunnel.provider !== "none") {
+    if (
+      !publicUrl &&
+      config.tunnel?.provider &&
+      config.tunnel.provider !== "none"
+    ) {
       try {
         const nextTunnelResult = await startTunnel({
           provider: config.tunnel.provider,
@@ -433,7 +464,9 @@ export async function createVoiceCallRuntime(params: {
         lifecycle.setTunnelResult(nextTunnelResult);
         publicUrl = nextTunnelResult?.publicUrl ?? null;
       } catch (err) {
-        log.error(`[voice-call] Tunnel setup failed: ${formatErrorMessage(err)}`);
+        log.error(
+          `[voice-call] Tunnel setup failed: ${formatErrorMessage(err)}`,
+        );
       }
     }
 
@@ -485,10 +518,14 @@ export async function createVoiceCallRuntime(params: {
           twilioProvider.setTTSProvider(ttsProvider);
           log.info("[voice-call] Telephony TTS provider configured");
         } catch (err) {
-          log.warn(`[voice-call] Failed to initialize telephony TTS: ${formatErrorMessage(err)}`);
+          log.warn(
+            `[voice-call] Failed to initialize telephony TTS: ${formatErrorMessage(err)}`,
+          );
         }
       } else {
-        log.warn("[voice-call] Telephony TTS unavailable; streaming TTS disabled");
+        log.warn(
+          "[voice-call] Telephony TTS unavailable; streaming TTS disabled",
+        );
       }
 
       const mediaHandler = webhookServer.getMediaStreamHandler();
@@ -499,7 +536,9 @@ export async function createVoiceCallRuntime(params: {
     }
 
     if (realtimeProvider) {
-      log.info(`[voice-call] Realtime voice provider: ${realtimeProvider.provider.id}`);
+      log.info(
+        `[voice-call] Realtime voice provider: ${realtimeProvider.provider.id}`,
+      );
     }
 
     await manager.initialize(provider, webhookUrl);

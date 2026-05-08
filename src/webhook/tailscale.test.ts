@@ -6,9 +6,13 @@ const { spawnMock } = vi.hoisted(() => ({
 }));
 
 vi.mock("node:child_process", async () => {
-  const { mockNodeBuiltinModule } = await import("openclaw/plugin-sdk/test-node-mocks");
+  const { mockNodeBuiltinModule } =
+    await import("openclaw/plugin-sdk/test-node-mocks");
   return mockNodeBuiltinModule(
-    () => vi.importActual<typeof import("node:child_process")>("node:child_process"),
+    () =>
+      vi.importActual<typeof import("node:child_process")>(
+        "node:child_process",
+      ),
     {
       spawn: spawnMock,
     },
@@ -48,7 +52,10 @@ function createErrorProc() {
   proc.stdout = new EventEmitter();
   proc.kill = vi.fn();
   setTimeout(() => {
-    proc.emit("error", Object.assign(new Error("spawn tailscale ENOENT"), { code: "ENOENT" }));
+    proc.emit(
+      "error",
+      Object.assign(new Error("spawn tailscale ENOENT"), { code: "ENOENT" }),
+    );
   }, 0);
   return proc;
 }
@@ -131,7 +138,14 @@ describe("voice-call tailscale helpers", () => {
     expect(spawnMock).toHaveBeenNthCalledWith(
       2,
       "tailscale",
-      ["serve", "--bg", "--yes", "--set-path", "/voice", "http://127.0.0.1:8787/webhook"],
+      [
+        "serve",
+        "--bg",
+        "--yes",
+        "--set-path",
+        "/voice",
+        "http://127.0.0.1:8787/webhook",
+      ],
       expect.any(Object),
     );
     expect(spawnMock).toHaveBeenNthCalledWith(
@@ -201,7 +215,14 @@ describe("voice-call tailscale helpers", () => {
     expect(spawnMock).toHaveBeenNthCalledWith(
       2,
       "tailscale",
-      ["funnel", "--bg", "--yes", "--set-path", "/voice", "http://127.0.0.1:8787/webhook"],
+      [
+        "funnel",
+        "--bg",
+        "--yes",
+        "--set-path",
+        "/voice",
+        "http://127.0.0.1:8787/webhook",
+      ],
       expect.any(Object),
     );
     expect(spawnMock).toHaveBeenNthCalledWith(

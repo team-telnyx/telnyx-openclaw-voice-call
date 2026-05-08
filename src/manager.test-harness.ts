@@ -25,7 +25,10 @@ export class FakeProvider implements VoiceCallProvider {
   readonly hangupCalls: HangupCallInput[] = [];
   readonly startListeningCalls: StartListeningInput[] = [];
   readonly stopListeningCalls: StopListeningInput[] = [];
-  getCallStatusResult: GetCallStatusResult = { status: "in-progress", isTerminal: false };
+  getCallStatusResult: GetCallStatusResult = {
+    status: "in-progress",
+    isTerminal: false,
+  };
 
   constructor(name: "plivo" | "twilio" | "telnyx" = "plivo") {
     this.name = name;
@@ -59,7 +62,9 @@ export class FakeProvider implements VoiceCallProvider {
     this.stopListeningCalls.push(input);
   }
 
-  async getCallStatus(_input: GetCallStatusInput): Promise<GetCallStatusResult> {
+  async getCallStatus(
+    _input: GetCallStatusInput,
+  ): Promise<GetCallStatusResult> {
     return this.getCallStatusResult;
   }
 
@@ -90,7 +95,11 @@ export async function createManagerHarness(
   return { manager, provider };
 }
 
-export function markCallAnswered(manager: CallManager, callId: string, eventId: string): void {
+export function markCallAnswered(
+  manager: CallManager,
+  callId: string,
+  eventId: string,
+): void {
   manager.processEvent({
     id: eventId,
     type: "call.answered",
@@ -100,7 +109,10 @@ export function markCallAnswered(manager: CallManager, callId: string, eventId: 
   });
 }
 
-export function writeCallsToStore(storePath: string, calls: Record<string, unknown>[]): void {
+export function writeCallsToStore(
+  storePath: string,
+  calls: Record<string, unknown>[],
+): void {
   fs.mkdirSync(storePath, { recursive: true });
   const logPath = path.join(storePath, "calls.jsonl");
   const lines = calls.map((c) => JSON.stringify(c)).join("\n") + "\n";

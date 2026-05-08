@@ -12,7 +12,9 @@ import {
 } from "./config.js";
 import { createVoiceCallBaseConfig } from "./test-fixtures.js";
 
-function createBaseConfig(provider: "telnyx" | "twilio" | "plivo" | "mock"): VoiceCallConfig {
+function createBaseConfig(
+  provider: "telnyx" | "twilio" | "plivo" | "mock",
+): VoiceCallConfig {
   return createVoiceCallBaseConfig({ provider });
 }
 
@@ -24,7 +26,9 @@ function requireElevenLabsTtsConfig(config: Pick<VoiceCallConfig, "tts">) {
   const tts = config.tts;
   const elevenlabs = tts?.providers?.elevenlabs;
   if (!elevenlabs || typeof elevenlabs !== "object") {
-    throw new Error("voice-call config did not preserve nested elevenlabs TTS config");
+    throw new Error(
+      "voice-call config did not preserve nested elevenlabs TTS config",
+    );
   }
   return { tts, elevenlabs };
 }
@@ -67,7 +71,10 @@ describe("validateProviderConfig", () => {
         } else {
           fromConfig.plivo = { authId: "MA123", authToken: "secret" };
         }
-        expect(validateProviderConfig(fromConfig)).toMatchObject({ valid: true, errors: [] });
+        expect(validateProviderConfig(fromConfig)).toMatchObject({
+          valid: true,
+          errors: [],
+        });
 
         clearProviderEnv();
         if (provider === "twilio") {
@@ -83,7 +90,10 @@ describe("validateProviderConfig", () => {
           process.env.PLIVO_AUTH_TOKEN = "secret";
         }
         const fromEnv = resolveVoiceCallConfig(createBaseConfig(provider));
-        expect(validateProviderConfig(fromEnv)).toMatchObject({ valid: true, errors: [] });
+        expect(validateProviderConfig(fromEnv)).toMatchObject({
+          valid: true,
+          errors: [],
+        });
       }
     });
   });
@@ -101,7 +111,10 @@ describe("validateProviderConfig", () => {
       });
 
       expect(config.twilio?.authToken).toEqual(envRef("TWILIO_AUTH_TOKEN"));
-      expect(validateProviderConfig(config)).toMatchObject({ valid: true, errors: [] });
+      expect(validateProviderConfig(config)).toMatchObject({
+        valid: true,
+        errors: [],
+      });
       expect(() => resolveTwilioAuthToken(config)).toThrow(
         'plugins.entries.voice-call.config.twilio.authToken: unresolved SecretRef "env:default:TWILIO_AUTH_TOKEN"',
       );
@@ -130,12 +143,17 @@ describe("validateProviderConfig", () => {
       });
 
       expect(config.fromNumber).toBe("+15550001234");
-      expect(validateProviderConfig(config)).toMatchObject({ valid: true, errors: [] });
+      expect(validateProviderConfig(config)).toMatchObject({
+        valid: true,
+        errors: [],
+      });
     });
 
     it("fails validation when required twilio credentials are missing", () => {
       process.env.TWILIO_AUTH_TOKEN = "secret";
-      const missingSid = validateProviderConfig(resolveVoiceCallConfig(createBaseConfig("twilio")));
+      const missingSid = validateProviderConfig(
+        resolveVoiceCallConfig(createBaseConfig("twilio")),
+      );
       expect(missingSid.valid).toBe(false);
       expect(missingSid.errors).toContain(
         "plugins.entries.voice-call.config.twilio.accountSid is required (or set TWILIO_ACCOUNT_SID env)",
@@ -184,11 +202,17 @@ describe("validateProviderConfig", () => {
         connectionId: "CONN456",
         publicKey: "public-key",
       };
-      expect(validateProviderConfig(withPublicKey)).toMatchObject({ valid: true, errors: [] });
+      expect(validateProviderConfig(withPublicKey)).toMatchObject({
+        valid: true,
+        errors: [],
+      });
 
       const skippedVerification = createBaseConfig("telnyx");
       skippedVerification.skipSignatureVerification = true;
-      skippedVerification.telnyx = { apiKey: "KEY123", connectionId: "CONN456" };
+      skippedVerification.telnyx = {
+        apiKey: "KEY123",
+        connectionId: "CONN456",
+      };
       expect(validateProviderConfig(skippedVerification)).toMatchObject({
         valid: true,
         errors: [],
@@ -368,17 +392,29 @@ describe("resolveVoiceCallConfig session routing", () => {
       },
     });
 
-    expect(resolveVoiceCallNumberRouteKey(config, "+1 (555) 000-1111")).toBe("+15550001111");
-    const effective = resolveVoiceCallEffectiveConfig(config, "+1 (555) 000-1111");
+    expect(resolveVoiceCallNumberRouteKey(config, "+1 (555) 000-1111")).toBe(
+      "+15550001111",
+    );
+    const effective = resolveVoiceCallEffectiveConfig(
+      config,
+      "+1 (555) 000-1111",
+    );
 
     expect(effective.numberRouteKey).toBe("+15550001111");
-    expect(effective.config.inboundGreeting).toBe("Silver Fox Cards, how can I help?");
+    expect(effective.config.inboundGreeting).toBe(
+      "Silver Fox Cards, how can I help?",
+    );
     expect(effective.config.agentId).toBe("cards");
     expect(effective.config.responseModel).toBe("openai/gpt-5.5");
-    expect(effective.config.responseSystemPrompt).toBe("You are a baseball card expert.");
+    expect(effective.config.responseSystemPrompt).toBe(
+      "You are a baseball card expert.",
+    );
     expect(effective.config.responseTimeoutMs).toBe(20000);
     expect(effective.config.tts?.provider).toBe("openai");
-    expect(effective.config.tts?.providers?.openai).toEqual({ voice: "alloy", speed: 1 });
+    expect(effective.config.tts?.providers?.openai).toEqual({
+      voice: "alloy",
+      speed: 1,
+    });
   });
 
   it("falls back to global voice settings when no per-number route matches", () => {
@@ -434,7 +470,9 @@ describe("normalizeVoiceCallConfig", () => {
       includeWorkspaceFiles: true,
       files: ["SOUL.md", "IDENTITY.md", "USER.md"],
     });
-    expect(normalized.realtime.instructions).toContain("openclaw_agent_consult");
+    expect(normalized.realtime.instructions).toContain(
+      "openclaw_agent_consult",
+    );
     expect(normalized.tunnel.provider).toBe("none");
     expect(normalized.webhookSecurity.allowedHosts).toEqual([]);
   });

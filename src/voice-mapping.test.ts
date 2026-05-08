@@ -18,7 +18,9 @@ describe("voice mapping", () => {
     expect(mapVoiceToPolly("alloy")).toBe("Polly.Joanna");
     expect(mapVoiceToPolly("ECHO")).toBe("Polly.Matthew");
     expect(mapVoiceToPolly("Polly.Brian")).toBe("Polly.Brian");
-    expect(mapVoiceToPolly("Google.en-US-Standard-C")).toBe("Google.en-US-Standard-C");
+    expect(mapVoiceToPolly("Google.en-US-Standard-C")).toBe(
+      "Google.en-US-Standard-C",
+    );
     expect(mapVoiceToPolly("unknown")).toBe(DEFAULT_POLLY_VOICE);
     expect(mapVoiceToPolly(undefined)).toBe(DEFAULT_POLLY_VOICE);
   });
@@ -28,7 +30,14 @@ describe("voice mapping", () => {
     expect(isOpenAiVoice("NOVA")).toBe(true);
     expect(isOpenAiVoice("Polly.Joanna")).toBe(false);
     expect(getOpenAiVoiceNames()).toEqual(
-      expect.arrayContaining(["alloy", "echo", "fable", "nova", "onyx", "shimmer"]),
+      expect.arrayContaining([
+        "alloy",
+        "echo",
+        "fable",
+        "nova",
+        "onyx",
+        "shimmer",
+      ]),
     );
   });
 });

@@ -42,6 +42,8 @@ export default definePluginEntry({
   name: "Voice Call Setup",
   description: "Lightweight Voice Call setup hooks",
   register(api) {
-    api.registerConfigMigration((config) => migrateVoiceCallPluginConfig(config));
+    api.registerConfigMigration((config) =>
+      migrateVoiceCallPluginConfig(config),
+    );
   },
 });

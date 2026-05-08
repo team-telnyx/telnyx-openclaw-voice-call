@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { WebhookContext } from "../../types.js";
 import { decideTwimlResponse, readTwimlRequestView } from "./twiml-policy.js";
 
-function createContext(rawBody: string, query?: WebhookContext["query"]): WebhookContext {
+function createContext(
+  rawBody: string,
+  query?: WebhookContext["query"],
+): WebhookContext {
   return {
     headers: {},
     rawBody,
@@ -15,9 +18,12 @@ function createContext(rawBody: string, query?: WebhookContext["query"]): Webhoo
 describe("twiml policy", () => {
   it("returns stored twiml decision for initial notify callback", () => {
     const view = readTwimlRequestView(
-      createContext("CallStatus=initiated&Direction=outbound-api&CallSid=CA123", {
-        callId: "call-1",
-      }),
+      createContext(
+        "CallStatus=initiated&Direction=outbound-api&CallSid=CA123",
+        {
+          callId: "call-1",
+        },
+      ),
     );
 
     const decision = decideTwimlResponse({

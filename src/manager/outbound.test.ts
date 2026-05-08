@@ -53,8 +53,14 @@ vi.mock("./twiml.js", () => ({
 
 import { endCall, initiateCall, sendDtmf, speak } from "./outbound.js";
 
-function createActiveCallContext(params: { hangupCall?: ReturnType<typeof vi.fn> } = {}) {
-  const call = { callId: "call-1", providerCallId: "provider-1", state: "active" };
+function createActiveCallContext(
+  params: { hangupCall?: ReturnType<typeof vi.fn> } = {},
+) {
+  const call = {
+    callId: "call-1",
+    providerCallId: "provider-1",
+    state: "active",
+  };
   const hangupCall = params.hangupCall ?? vi.fn(async () => {});
   const ctx = {
     activeCalls: new Map([["call-1", call]]),
@@ -98,7 +104,11 @@ describe("voice-call outbound helpers", () => {
 
     await expect(
       initiateCall(
-        { ...base, provider: { name: "twilio" }, webhookUrl: undefined } as never,
+        {
+          ...base,
+          provider: { name: "twilio" },
+          webhookUrl: undefined,
+        } as never,
         "+14155550123",
       ),
     ).resolves.toEqual({
@@ -112,7 +122,9 @@ describe("voice-call outbound helpers", () => {
       activeCalls: new Map([["existing", {}]]),
       provider: { name: "twilio" },
     };
-    await expect(initiateCall(saturated as never, "+14155550123")).resolves.toEqual({
+    await expect(
+      initiateCall(saturated as never, "+14155550123"),
+    ).resolves.toEqual({
       callId: "",
       success: false,
       error: "Maximum concurrent calls (1) reached",
@@ -135,7 +147,9 @@ describe("voice-call outbound helpers", () => {
   });
 
   it("initiates notify-mode calls with inline TwiML and records provider ids", async () => {
-    const initiateProviderCall = vi.fn(async () => ({ providerCallId: "provider-1" }));
+    const initiateProviderCall = vi.fn(async () => ({
+      providerCallId: "provider-1",
+    }));
     const ctx = {
       activeCalls: new Map(),
       providerCallIdMap: new Map(),
@@ -150,10 +164,15 @@ describe("voice-call outbound helpers", () => {
       webhookUrl: "https://example.com/webhook",
     };
 
-    const result = await initiateCall(ctx as never, "+14155550123", "session-1", {
-      mode: "notify",
-      message: "hello there",
-    });
+    const result = await initiateCall(
+      ctx as never,
+      "+14155550123",
+      "session-1",
+      {
+        mode: "notify",
+        message: "hello there",
+      },
+    );
     expect(result).toEqual({
       callId: expect.any(String),
       success: true,
@@ -161,7 +180,10 @@ describe("voice-call outbound helpers", () => {
     const callId = result.callId;
 
     expect(mapVoiceToPollyMock).toHaveBeenCalledWith("nova");
-    expect(generateNotifyTwimlMock).toHaveBeenCalledWith("hello there", "Polly.Joanna");
+    expect(generateNotifyTwimlMock).toHaveBeenCalledWith(
+      "hello there",
+      "Polly.Joanna",
+    );
     expect(initiateProviderCall).toHaveBeenCalledWith({
       callId,
       from: "+14155550100",
@@ -175,7 +197,9 @@ describe("voice-call outbound helpers", () => {
   });
 
   it("assigns per-call session keys to outbound calls when configured", async () => {
-    const initiateProviderCall = vi.fn(async () => ({ providerCallId: "provider-1" }));
+    const initiateProviderCall = vi.fn(async () => ({
+      providerCallId: "provider-1",
+    }));
     const ctx = {
       activeCalls: new Map(),
       providerCallIdMap: new Map(),
@@ -196,11 +220,15 @@ describe("voice-call outbound helpers", () => {
       callId: expect.any(String),
       success: true,
     });
-    expect(ctx.activeCalls.get(result.callId)?.sessionKey).toBe(`voice:call:${result.callId}`);
+    expect(ctx.activeCalls.get(result.callId)?.sessionKey).toBe(
+      `voice:call:${result.callId}`,
+    );
   });
 
   it("initiates conversation calls with pre-connect DTMF TwiML", async () => {
-    const initiateProviderCall = vi.fn(async () => ({ providerCallId: "provider-1" }));
+    const initiateProviderCall = vi.fn(async () => ({
+      providerCallId: "provider-1",
+    }));
     const ctx = {
       activeCalls: new Map(),
       providerCallIdMap: new Map(),
@@ -214,11 +242,16 @@ describe("voice-call outbound helpers", () => {
       webhookUrl: "https://example.com/webhook",
     };
 
-    const result = await initiateCall(ctx as never, "+14155550123", "session-1", {
-      mode: "conversation",
-      message: "hello meet",
-      dtmfSequence: "ww123456#",
-    });
+    const result = await initiateCall(
+      ctx as never,
+      "+14155550123",
+      "session-1",
+      {
+        mode: "conversation",
+        message: "hello meet",
+        dtmfSequence: "ww123456#",
+      },
+    );
 
     expect(result).toEqual({
       callId: expect.any(String),
@@ -245,7 +278,9 @@ describe("voice-call outbound helpers", () => {
   });
 
   it("rejects DTMF sequences outside conversation mode", async () => {
-    const initiateProviderCall = vi.fn(async () => ({ providerCallId: "provider-1" }));
+    const initiateProviderCall = vi.fn(async () => ({
+      providerCallId: "provider-1",
+    }));
     const ctx = {
       activeCalls: new Map(),
       providerCallIdMap: new Map(),
@@ -301,17 +336,25 @@ describe("voice-call outbound helpers", () => {
   });
 
   it("speaks through connected calls and rolls back to listening on provider errors", async () => {
-    const call = { callId: "call-1", providerCallId: "provider-1", state: "active" };
+    const call = {
+      callId: "call-1",
+      providerCallId: "provider-1",
+      state: "active",
+    };
     const playTts = vi.fn(async () => {});
     const ctx = {
       activeCalls: new Map([["call-1", call]]),
       providerCallIdMap: new Map(),
       provider: { name: "twilio", playTts },
-      config: { tts: { provider: "openai", providers: { openai: { voice: "alloy" } } } },
+      config: {
+        tts: { provider: "openai", providers: { openai: { voice: "alloy" } } },
+      },
       storePath: "/tmp/voice-call.json",
     };
 
-    await expect(speak(ctx as never, "call-1", "hello")).resolves.toEqual({ success: true });
+    await expect(speak(ctx as never, "call-1", "hello")).resolves.toEqual({
+      success: true,
+    });
     expect(transitionStateMock).toHaveBeenCalledWith(call, "speaking");
     expect(playTts).toHaveBeenCalledWith({
       callId: "call-1",
@@ -324,15 +367,21 @@ describe("voice-call outbound helpers", () => {
     playTts.mockImplementationOnce(async () => {
       throw new Error("tts failed");
     });
-    await expect(speak(ctx as never, "call-1", "hello again")).resolves.toEqual({
-      success: false,
-      error: "tts failed",
-    });
+    await expect(speak(ctx as never, "call-1", "hello again")).resolves.toEqual(
+      {
+        success: false,
+        error: "tts failed",
+      },
+    );
     expect(transitionStateMock).toHaveBeenLastCalledWith(call, "listening");
   });
 
   it("passes configured voice ids through to Telnyx speak", async () => {
-    const call = { callId: "call-1", providerCallId: "provider-1", state: "active" };
+    const call = {
+      callId: "call-1",
+      providerCallId: "provider-1",
+      state: "active",
+    };
     const playTts = vi.fn(async () => {});
     const ctx = {
       activeCalls: new Map([["call-1", call]]),
@@ -351,7 +400,9 @@ describe("voice-call outbound helpers", () => {
       storePath: "/tmp/voice-call.json",
     };
 
-    await expect(speak(ctx as never, "call-1", "hello")).resolves.toEqual({ success: true });
+    await expect(speak(ctx as never, "call-1", "hello")).resolves.toEqual({
+      success: true,
+    });
 
     expect(playTts).toHaveBeenCalledWith({
       callId: "call-1",
@@ -389,7 +440,9 @@ describe("voice-call outbound helpers", () => {
       storePath: "/tmp/voice-call.json",
     };
 
-    await expect(speak(ctx as never, "call-1", "hello")).resolves.toEqual({ success: true });
+    await expect(speak(ctx as never, "call-1", "hello")).resolves.toEqual({
+      success: true,
+    });
 
     expect(playTts).toHaveBeenCalledWith({
       callId: "call-1",
@@ -400,7 +453,11 @@ describe("voice-call outbound helpers", () => {
   });
 
   it("sends DTMF through connected provider calls", async () => {
-    const call = { callId: "call-1", providerCallId: "provider-1", state: "active" };
+    const call = {
+      callId: "call-1",
+      providerCallId: "provider-1",
+      state: "active",
+    };
     const sendDtmfProvider = vi.fn(async () => {});
     const ctx = {
       activeCalls: new Map([["call-1", call]]),
@@ -421,7 +478,11 @@ describe("voice-call outbound helpers", () => {
   });
 
   it("rejects invalid or unsupported outbound DTMF", async () => {
-    const call = { callId: "call-1", providerCallId: "provider-1", state: "active" };
+    const call = {
+      callId: "call-1",
+      providerCallId: "provider-1",
+      state: "active",
+    };
     const ctx = {
       activeCalls: new Map([["call-1", call]]),
       providerCallIdMap: new Map(),
@@ -443,7 +504,9 @@ describe("voice-call outbound helpers", () => {
   it("ends connected calls, clears timers, and rejects pending transcripts", async () => {
     const { call, ctx, hangupCall } = createActiveCallContext();
 
-    await expect(endCall(ctx as never, "call-1")).resolves.toEqual({ success: true });
+    await expect(endCall(ctx as never, "call-1")).resolves.toEqual({
+      success: true,
+    });
     expect(hangupCall).toHaveBeenCalledWith({
       callId: "call-1",
       providerCallId: "provider-1",
@@ -472,7 +535,9 @@ describe("voice-call outbound helpers", () => {
   it("preserves timeout reasons when ending timed out calls", async () => {
     const { call, ctx, hangupCall } = createActiveCallContext();
 
-    await expect(endCall(ctx as never, "call-1", { reason: "timeout" })).resolves.toEqual({
+    await expect(
+      endCall(ctx as never, "call-1", { reason: "timeout" }),
+    ).resolves.toEqual({
       success: true,
     });
     expect(hangupCall).toHaveBeenCalledWith({
@@ -513,7 +578,14 @@ describe("voice-call outbound helpers", () => {
       endCall(
         {
           activeCalls: new Map([
-            ["call-1", { callId: "call-1", state: "completed", providerCallId: "provider-1" }],
+            [
+              "call-1",
+              {
+                callId: "call-1",
+                state: "completed",
+                providerCallId: "provider-1",
+              },
+            ],
           ]),
           providerCallIdMap: new Map(),
           provider: { hangupCall: vi.fn() },

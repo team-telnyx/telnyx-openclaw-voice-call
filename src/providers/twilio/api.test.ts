@@ -138,7 +138,8 @@ describe("twilioApiRequest", () => {
       name: "TwilioApiError",
       httpStatus: 400,
       twilioCode: 21220,
-      message: "Twilio API error: 400 Call is not in-progress. Cannot redirect.",
+      message:
+        "Twilio API error: 400 Call is not in-progress. Cannot redirect.",
     } satisfies Partial<TwilioApiError>);
     expect(release).toHaveBeenCalledTimes(1);
   });

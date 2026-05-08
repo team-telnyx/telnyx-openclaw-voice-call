@@ -107,7 +107,9 @@ describe("CallManager inbound allowlist", () => {
     class FlakyHangupProvider extends FakeProvider {
       hangupFailuresRemaining = 1;
 
-      override async hangupCall(input: Parameters<FakeProvider["hangupCall"]>[0]): Promise<void> {
+      override async hangupCall(
+        input: Parameters<FakeProvider["hangupCall"]>[0],
+      ): Promise<void> {
         this.hangupCalls.push(input);
         if (this.hangupFailuresRemaining > 0) {
           this.hangupFailuresRemaining -= 1;
@@ -173,7 +175,9 @@ describe("CallManager inbound allowlist", () => {
 
     const call = manager.getCallByProviderCallId("provider-exact");
     if (!call) {
-      throw new Error("expected exact allowlist match to keep the inbound call");
+      throw new Error(
+        "expected exact allowlist match to keep the inbound call",
+      );
     }
     expect(call).toMatchObject({
       providerCallId: "provider-exact",

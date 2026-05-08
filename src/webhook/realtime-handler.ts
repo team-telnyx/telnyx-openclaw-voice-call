@@ -103,7 +103,9 @@ function readSpeakableToolResultText(result: unknown): string | undefined {
     return text.trim();
   }
   const output = (result as { output?: unknown }).output;
-  return typeof output === "string" && output.trim() ? output.trim() : undefined;
+  return typeof output === "string" && output.trim()
+    ? output.trim()
+    : undefined;
 }
 
 function readConsultArgText(args: unknown, key: string): string | undefined {
@@ -156,7 +158,10 @@ function shouldInsertTranscriptSpace(base: string, next: string): boolean {
   return true;
 }
 
-function appendTranscriptText(base: string | undefined, fragment: string): string {
+function appendTranscriptText(
+  base: string | undefined,
+  fragment: string,
+): string {
   const next = normalizeTranscriptText(fragment);
   if (!next) {
     return base ?? "";
@@ -189,7 +194,10 @@ function limitPartialUserTranscript(text: string): string {
   return tail.replace(/^\S+\s+/, "").trimStart() || tail.trimStart();
 }
 
-function withFallbackConsultQuestion(args: unknown, fallback: string | undefined): unknown {
+function withFallbackConsultQuestion(
+  args: unknown,
+  fallback: string | undefined,
+): unknown {
   const providerQuestion = readConsultQuestionText(args);
   const question = fallback?.trim();
   if (providerQuestion) {
@@ -204,7 +212,9 @@ function withFallbackConsultQuestion(args: unknown, fallback: string | undefined
         ? {
             ...args,
             question,
-            context: context ? `${context}\n\n${fallbackContext}` : fallbackContext,
+            context: context
+              ? `${context}\n\n${fallbackContext}`
+              : fallbackContext,
           }
         : { question, context: fallbackContext };
     }
@@ -276,7 +286,9 @@ function appendRecentTalkEventMetadata(
     return;
   }
   const metadata = call.metadata ?? {};
-  const previous = Array.isArray(metadata.recentTalkEvents) ? metadata.recentTalkEvents : [];
+  const previous = Array.isArray(metadata.recentTalkEvents)
+    ? metadata.recentTalkEvents
+    : [];
   metadata.lastTalkEventAt = event.timestamp;
   metadata.lastTalkEventType = event.type;
   metadata.recentTalkEvents = [
@@ -301,23 +313,41 @@ function appendRecentTalkEventMetadata(
 export class RealtimeCallHandler {
   private readonly toolHandlers = new Map<string, ToolHandlerFn>();
   private readonly pendingStreamTokens = new Map<string, PendingStreamToken>();
-  private readonly activeBridgesByCallId = new Map<string, ActiveRealtimeVoiceBridge>();
+  private readonly activeBridgesByCallId = new Map<
+    string,
+    ActiveRealtimeVoiceBridge
+  >();
   private readonly activeTelephonyClosersByCallId = new Map<
     string,
     (reason: TelephonyCloseReason) => void
   >();
   private readonly partialUserTranscriptsByCallId = new Map<string, string>();
-  private readonly partialUserTranscriptUpdatedAtByCallId = new Map<string, number>();
-  private readonly recentFinalUserTranscriptsByCallId = new Map<string, string>();
+  private readonly partialUserTranscriptUpdatedAtByCallId = new Map<
+    string,
+    number
+  >();
+  private readonly recentFinalUserTranscriptsByCallId = new Map<
+    string,
+    string
+  >();
   private readonly recentFinalUserTranscriptTimersByCallId = new Map<
     string,
     ReturnType<typeof setTimeout>
   >();
-  private readonly forcedConsultTimersByCallId = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly forcedConsultTimersByCallId = new Map<
+    string,
+    ReturnType<typeof setTimeout>
+  >();
   private readonly forcedConsultInFlightByCallId = new Set<string>();
-  private readonly forcedConsultsByCallId = new Map<string, ForcedConsultState>();
+  private readonly forcedConsultsByCallId = new Map<
+    string,
+    ForcedConsultState
+  >();
   private readonly lastProviderConsultAtByCallId = new Map<string, number>();
-  private readonly nativeConsultsInFlightByCallId = new Map<string, NativeConsultState>();
+  private readonly nativeConsultsInFlightByCallId = new Map<
+    string,
+    NativeConsultState
+  >();
   private publicOrigin: string | null = null;
   private publicPathPrefix = "";
 
@@ -361,7 +391,10 @@ export class RealtimeCallHandler {
     return `wss://${host}${this.getStreamPathPattern()}/${token}`;
   }
 
-  buildTwiMLPayload(req: http.IncomingMessage, params?: URLSearchParams): WebhookResponsePayload {
+  buildTwiMLPayload(
+    req: http.IncomingMessage,
+    params?: URLSearchParams,
+  ): WebhookResponsePayload {
     const host = this.publicOrigin || req.headers.host || DEFAULT_HOST;
     const rawDirection = params?.get("Direction");
     const token = this.issueStreamToken({
@@ -384,7 +417,11 @@ export class RealtimeCallHandler {
     };
   }
 
-  handleWebSocketUpgrade(request: http.IncomingMessage, socket: Duplex, head: Buffer): void {
+  handleWebSocketUpgrade(
+    request: http.IncomingMessage,
+    socket: Duplex,
+    head: Buffer,
+  ): void {
     const url = new URL(request.url ?? "/", "wss://localhost");
     const token = url.pathname.split("/").pop() ?? null;
     const callerMeta = token ? this.consumeStreamToken(token) : null;
@@ -417,14 +454,27 @@ export class RealtimeCallHandler {
                 ? (msg.start as Record<string, unknown>)
                 : undefined;
             const streamSid =
-              readStringField(startData, ["streamSid", "stream_id", "streamId"]) ?? "unknown";
+              readStringField(startData, [
+                "streamSid",
+                "stream_id",
+                "streamId",
+              ]) ?? "unknown";
             const callSid =
-              readStringField(startData, ["callSid", "call_control_id", "callControlId"]) ??
+              readStringField(startData, [
+                "callSid",
+                "call_control_id",
+                "callControlId",
+              ]) ??
               readStringField(msg, ["call_control_id", "callControlId"]) ??
               callerMeta.providerCallId ??
               "unknown";
             activeCallSid = callSid;
-            const nextBridge = this.handleCall(streamSid, callSid, ws, callerMeta);
+            const nextBridge = this.handleCall(
+              streamSid,
+              callSid,
+              ws,
+              callerMeta,
+            );
             if (!nextBridge) {
               return;
             }
@@ -451,7 +501,10 @@ export class RealtimeCallHandler {
               if (lastMediaTimestamp !== undefined) {
                 const gapMs = mediaTimestamp - lastMediaTimestamp;
                 const now = Date.now();
-                if ((gapMs > 120 || gapMs < 0) && now - lastMediaGapWarnAt > 5_000) {
+                if (
+                  (gapMs > 120 || gapMs < 0) &&
+                  now - lastMediaGapWarnAt > 5_000
+                ) {
                   lastMediaGapWarnAt = now;
                   console.warn(
                     `[voice-call] realtime media timestamp gap providerCallId=${activeCallSid} gapMs=${gapMs} timestamp=${mediaTimestamp}`,
@@ -477,7 +530,10 @@ export class RealtimeCallHandler {
       });
 
       ws.on("close", (code) => {
-        const reason = stopReceived || code === 1000 || code === 1005 ? "completed" : "error";
+        const reason =
+          stopReceived || code === 1000 || code === 1005
+            ? "completed"
+            : "error";
         this.closeTelephonyBridge(activeCallSid, bridge, reason);
       });
 
@@ -504,9 +560,14 @@ export class RealtimeCallHandler {
     }
   }
 
-  private issueStreamToken(meta: Omit<PendingStreamToken, "expiry"> = {}): string {
+  private issueStreamToken(
+    meta: Omit<PendingStreamToken, "expiry"> = {},
+  ): string {
     const token = randomUUID();
-    this.pendingStreamTokens.set(token, { expiry: Date.now() + STREAM_TOKEN_TTL_MS, ...meta });
+    this.pendingStreamTokens.set(token, {
+      expiry: Date.now() + STREAM_TOKEN_TTL_MS,
+      ...meta,
+    });
     for (const [candidate, entry] of this.pendingStreamTokens) {
       if (Date.now() > entry.expiry) {
         this.pendingStreamTokens.delete(candidate);
@@ -515,7 +576,9 @@ export class RealtimeCallHandler {
     return token;
   }
 
-  private consumeStreamToken(token: string): Omit<PendingStreamToken, "expiry"> | null {
+  private consumeStreamToken(
+    token: string,
+  ): Omit<PendingStreamToken, "expiry"> | null {
     const entry = this.pendingStreamTokens.get(token);
     if (!entry) {
       return null;
@@ -555,7 +618,9 @@ export class RealtimeCallHandler {
       },
       { onEvent: recordTalkObservabilityEvent },
     );
-    const rememberTalkEvent = (event: TalkEvent | undefined): TalkEvent | undefined => {
+    const rememberTalkEvent = (
+      event: TalkEvent | undefined,
+    ): TalkEvent | undefined => {
       if (event) {
         appendRecentTalkEventMetadata(callRecord, event);
       }
@@ -901,7 +966,9 @@ export class RealtimeCallHandler {
 
   private recordPartialUserTranscript(callId: string, text: string): string {
     const current = this.partialUserTranscriptsByCallId.get(callId);
-    const next = limitPartialUserTranscript(appendTranscriptText(current, text));
+    const next = limitPartialUserTranscript(
+      appendTranscriptText(current, text),
+    );
     this.partialUserTranscriptsByCallId.set(callId, next);
     this.partialUserTranscriptUpdatedAtByCallId.set(callId, Date.now());
     return next;
@@ -946,7 +1013,10 @@ export class RealtimeCallHandler {
     );
   }
 
-  private consumePartialUserTranscript(callId: string, consumed: string | undefined): void {
+  private consumePartialUserTranscript(
+    callId: string,
+    consumed: string | undefined,
+  ): void {
     const text = consumed?.trim();
     if (!text) {
       return;
@@ -971,12 +1041,18 @@ export class RealtimeCallHandler {
     if (!recent) {
       return;
     }
-    if (recent === text || recent.toLowerCase().startsWith(text.toLowerCase())) {
+    if (
+      recent === text ||
+      recent.toLowerCase().startsWith(text.toLowerCase())
+    ) {
       this.clearRecentFinalUserTranscript(callId);
     }
   }
 
-  private async waitForConsultTranscriptSettle(callId: string, startedAt: number): Promise<void> {
+  private async waitForConsultTranscriptSettle(
+    callId: string,
+    startedAt: number,
+  ): Promise<void> {
     const deadline = startedAt + CONSULT_TRANSCRIPT_SETTLE_MAX_MS;
     while (true) {
       const updatedAt = this.partialUserTranscriptUpdatedAtByCallId.get(callId);
@@ -989,7 +1065,10 @@ export class RealtimeCallHandler {
         return;
       }
       await new Promise((resolve) =>
-        setTimeout(resolve, Math.min(CONSULT_TRANSCRIPT_SETTLE_MS - quietFor, deadline - now)),
+        setTimeout(
+          resolve,
+          Math.min(CONSULT_TRANSCRIPT_SETTLE_MS - quietFor, deadline - now),
+        ),
       );
     }
   }
@@ -1032,7 +1111,9 @@ export class RealtimeCallHandler {
     if (!question) {
       return;
     }
-    const handler = this.toolHandlers.get(REALTIME_VOICE_AGENT_CONSULT_TOOL_NAME);
+    const handler = this.toolHandlers.get(
+      REALTIME_VOICE_AGENT_CONSULT_TOOL_NAME,
+    );
     if (!handler) {
       return;
     }
@@ -1045,7 +1126,8 @@ export class RealtimeCallHandler {
       if (this.forcedConsultInFlightByCallId.has(params.callId)) {
         return;
       }
-      const lastProviderConsultAt = this.lastProviderConsultAtByCallId.get(params.callId) ?? 0;
+      const lastProviderConsultAt =
+        this.lastProviderConsultAtByCallId.get(params.callId) ?? 0;
       if (Date.now() - lastProviderConsultAt < 2_000) {
         return;
       }
@@ -1175,7 +1257,11 @@ export class RealtimeCallHandler {
       : undefined;
   }
 
-  private endCallInManager(callSid: string, callId: string, reason: "completed" | "error"): void {
+  private endCallInManager(
+    callSid: string,
+    callId: string,
+    reason: "completed" | "error",
+  ): void {
     this.manager.processEvent({
       id: `realtime-ended-${callSid}-${Date.now()}`,
       type: "call.ended",
@@ -1199,7 +1285,10 @@ export class RealtimeCallHandler {
     const startedAt = Date.now();
     const hasResultError = (result: unknown): boolean => {
       return Boolean(
-        result && typeof result === "object" && !Array.isArray(result) && "error" in result,
+        result &&
+        typeof result === "object" &&
+        !Array.isArray(result) &&
+        "error" in result,
       );
     };
     const emitFinalToolEvent = (result: unknown): void => {
@@ -1247,7 +1336,8 @@ export class RealtimeCallHandler {
         if (forcedConsult.completedAt) {
           submitFinalToolResult({
             status: "already_delivered",
-            message: "OpenClaw already delivered this consult result internally. Do not repeat it.",
+            message:
+              "OpenClaw already delivered this consult result internally. Do not repeat it.",
           });
           return;
         }
@@ -1259,7 +1349,8 @@ export class RealtimeCallHandler {
         return;
       }
 
-      const existingNativeConsult = this.nativeConsultsInFlightByCallId.get(callId);
+      const existingNativeConsult =
+        this.nativeConsultsInFlightByCallId.get(callId);
       if (existingNativeConsult) {
         console.log(
           `[voice-call] realtime tool call sharing in-flight agent consult callId=${callId} ageMs=${Date.now() - existingNativeConsult.startedAt}`,
@@ -1280,7 +1371,10 @@ export class RealtimeCallHandler {
           partialUserTranscript: this.resolveUserTranscriptContext(callId),
         };
         state.partialUserTranscript = context.partialUserTranscript;
-        const handlerArgs = withFallbackConsultQuestion(args, context.partialUserTranscript);
+        const handlerArgs = withFallbackConsultQuestion(
+          args,
+          context.partialUserTranscript,
+        );
         console.log(
           `[voice-call] realtime tool call executing callId=${callId} tool=${name} hasHandler=${Boolean(handler)}`,
         );
@@ -1294,19 +1388,30 @@ export class RealtimeCallHandler {
       try {
         const result = await state.promise;
         const status =
-          result && typeof result === "object" && !Array.isArray(result) && "error" in result
+          result &&
+          typeof result === "object" &&
+          !Array.isArray(result) &&
+          "error" in result
             ? "error"
             : "ok";
         const error =
-          status === "error" && result && typeof result === "object" && !Array.isArray(result)
-            ? formatErrorMessage((result as { error?: unknown }).error ?? "unknown")
+          status === "error" &&
+          result &&
+          typeof result === "object" &&
+          !Array.isArray(result)
+            ? formatErrorMessage(
+                (result as { error?: unknown }).error ?? "unknown",
+              )
             : undefined;
         console.log(
           `[voice-call] realtime tool call completed callId=${callId} tool=${name} status=${status} elapsedMs=${Date.now() - startedAt}${error ? ` error=${error}` : ""}`,
         );
         submitFinalToolResult(result);
         if (status === "ok") {
-          this.consumePartialUserTranscript(callId, state.partialUserTranscript);
+          this.consumePartialUserTranscript(
+            callId,
+            state.partialUserTranscript,
+          );
         }
       } finally {
         if (this.nativeConsultsInFlightByCallId.get(callId) === state) {
@@ -1331,11 +1436,17 @@ export class RealtimeCallHandler {
           error: formatErrorMessage(error),
         }));
     const status =
-      result && typeof result === "object" && !Array.isArray(result) && "error" in result
+      result &&
+      typeof result === "object" &&
+      !Array.isArray(result) &&
+      "error" in result
         ? "error"
         : "ok";
     const error =
-      status === "error" && result && typeof result === "object" && !Array.isArray(result)
+      status === "error" &&
+      result &&
+      typeof result === "object" &&
+      !Array.isArray(result)
         ? formatErrorMessage((result as { error?: unknown }).error ?? "unknown")
         : undefined;
     console.log(

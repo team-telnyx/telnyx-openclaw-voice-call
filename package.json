@@ -24,6 +24,7 @@
     "check:sdk": "node scripts/check-openclaw-sdk.mjs",
     "build": "npm run check:sdk && tsc -p tsconfig.build.json",
     "prepack": "npm run build",
+    "pretest": "npm run check:sdk",
     "test": "vitest run",
     "test:smoke": "vitest run src/providers/mock.test.ts src/config.test.ts src/cli.test.ts",
     "lint": "npm run check:sdk && tsc --noEmit",

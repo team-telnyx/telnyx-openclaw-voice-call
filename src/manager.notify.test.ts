@@ -4,7 +4,9 @@ import { createManagerHarness, FakeProvider } from "./manager.test-harness.js";
 class FailFirstPlayTtsProvider extends FakeProvider {
   private failed = false;
 
-  override async playTts(input: Parameters<FakeProvider["playTts"]>[0]): Promise<void> {
+  override async playTts(
+    input: Parameters<FakeProvider["playTts"]>[0],
+  ): Promise<void> {
     this.playTtsCalls.push(input);
     if (!this.failed) {
       this.failed = true;
@@ -21,7 +23,9 @@ class DelayedPlayTtsProvider extends FakeProvider {
     this.resolvePlayTtsStarted = resolve;
   });
 
-  override async playTts(input: Parameters<FakeProvider["playTts"]>[0]): Promise<void> {
+  override async playTts(
+    input: Parameters<FakeProvider["playTts"]>[0],
+  ): Promise<void> {
     this.playTtsCalls.push(input);
     this.playTtsStarted();
     this.resolvePlayTtsStarted?.();
@@ -76,7 +80,9 @@ function requireFirstPlayTtsCall(provider: FakeProvider) {
   return call;
 }
 
-type HarnessManager = Awaited<ReturnType<typeof createManagerHarness>>["manager"];
+type HarnessManager = Awaited<
+  ReturnType<typeof createManagerHarness>
+>["manager"];
 
 async function waitForPlaybackDispatch() {
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -88,7 +94,10 @@ async function initiateCallWithMessage(
   message: string,
   mode: "notify" | "conversation",
 ) {
-  const { callId, success } = await manager.initiateCall(to, undefined, { message, mode });
+  const { callId, success } = await manager.initiateCall(to, undefined, {
+    message,
+    mode,
+  });
   expect(success).toBe(true);
   return callId;
 }
@@ -118,7 +127,8 @@ describe("CallManager notify and mapping", () => {
   it("upgrades providerCallId mapping when provider ID changes", async () => {
     const { manager } = await createManagerHarness();
 
-    const { callId, success, error } = await manager.initiateCall("+15550000001");
+    const { callId, success, error } =
+      await manager.initiateCall("+15550000001");
     expect(success).toBe(true);
     expect(error).toBeUndefined();
 
@@ -141,7 +151,10 @@ describe("CallManager notify and mapping", () => {
   it.each(["plivo", "twilio"] as const)(
     "speaks initial message on answered for notify mode (%s)",
     async (providerName) => {
-      const { manager, provider } = await createManagerHarness({}, new FakeProvider(providerName));
+      const { manager, provider } = await createManagerHarness(
+        {},
+        new FakeProvider(providerName),
+      );
 
       const callId = await initiateCallWithMessage(
         manager,
@@ -156,7 +169,10 @@ describe("CallManager notify and mapping", () => {
   );
 
   it("speaks initial message on answered for conversation mode with non-stream provider", async () => {
-    const { manager, provider } = await createManagerHarness({}, new FakeProvider("plivo"));
+    const { manager, provider } = await createManagerHarness(
+      {},
+      new FakeProvider("plivo"),
+    );
 
     const callId = await initiateCallWithMessage(
       manager,
@@ -202,7 +218,9 @@ describe("CallManager notify and mapping", () => {
 
     expect(provider.playTtsCalls).toHaveLength(0);
     expect(requireCall(manager, callId).metadata).toEqual(
-      expect.objectContaining({ initialMessage: "Tell Nana dinner is at 6pm." }),
+      expect.objectContaining({
+        initialMessage: "Tell Nana dinner is at 6pm.",
+      }),
     );
   });
 
@@ -212,7 +230,12 @@ describe("CallManager notify and mapping", () => {
       new FakeProvider("twilio"),
     );
 
-    const callId = await initiateCallWithMessage(manager, "+15550000011", "Notify text", "notify");
+    const callId = await initiateCallWithMessage(
+      manager,
+      "+15550000011",
+      "Notify text",
+      "notify",
+    );
     await answerCall(manager, callId, "evt-notify-twilio-realtime");
 
     expectFirstPlayTtsText(provider, "Notify text");
@@ -249,13 +272,20 @@ describe("CallManager notify and mapping", () => {
       "Twilio stream unavailable",
       "conversation",
     );
-    await answerCall(manager, callId, "evt-conversation-twilio-stream-unavailable");
+    await answerCall(
+      manager,
+      callId,
+      "evt-conversation-twilio-stream-unavailable",
+    );
 
     expectFirstPlayTtsText(provider, "Twilio stream unavailable");
   });
 
   it("starts listening after the initial greeting for Telnyx conversation calls", async () => {
-    const { manager, provider } = await createManagerHarness({}, new FakeProvider("telnyx"));
+    const { manager, provider } = await createManagerHarness(
+      {},
+      new FakeProvider("telnyx"),
+    );
 
     const callId = await initiateCallWithMessage(
       manager,
@@ -279,7 +309,10 @@ describe("CallManager notify and mapping", () => {
     const provider = new FailStartListeningProvider("twilio");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
-      const { manager } = await createManagerHarness({ streaming: { enabled: false } }, provider);
+      const { manager } = await createManagerHarness(
+        { streaming: { enabled: false } },
+        provider,
+      );
 
       const callId = await initiateCallWithMessage(
         manager,
@@ -287,7 +320,11 @@ describe("CallManager notify and mapping", () => {
         "Twilio hello",
         "conversation",
       );
-      await answerCall(manager, callId, "evt-initial-message-start-listening-fails");
+      await answerCall(
+        manager,
+        callId,
+        "evt-initial-message-start-listening-fails",
+      );
 
       expectFirstPlayTtsText(provider, "Twilio hello");
       expect(provider.startListeningCalls).toEqual([
@@ -310,12 +347,19 @@ describe("CallManager notify and mapping", () => {
     const provider = new FailFirstPlayTtsProvider("plivo");
     const { manager } = await createManagerHarness({}, provider);
 
-    const callId = await initiateCallWithMessage(manager, "+15550000006", "Retry me", "notify");
+    const callId = await initiateCallWithMessage(
+      manager,
+      "+15550000006",
+      "Retry me",
+      "notify",
+    );
     await answerCall(manager, callId, "evt-retry-1");
 
     const afterFailure = requireCall(manager, callId);
     expect(provider.playTtsCalls).toHaveLength(1);
-    expect(afterFailure.metadata).toEqual(expect.objectContaining({ initialMessage: "Retry me" }));
+    expect(afterFailure.metadata).toEqual(
+      expect.objectContaining({ initialMessage: "Retry me" }),
+    );
     expect(afterFailure.state).toBe("listening");
 
     await answerCall(manager, callId, "evt-retry-2");
@@ -348,7 +392,10 @@ describe("CallManager notify and mapping", () => {
 
   it("prevents concurrent initial-message replays while first playback is in flight", async () => {
     const provider = new DelayedPlayTtsProvider("twilio");
-    const { manager } = await createManagerHarness({ streaming: { enabled: true } }, provider);
+    const { manager } = await createManagerHarness(
+      { streaming: { enabled: true } },
+      provider,
+    );
 
     const callId = await initiateCallWithMessage(
       manager,

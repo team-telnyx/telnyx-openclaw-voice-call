@@ -17,8 +17,14 @@ type VoiceCallWebhookExposureStatus = {
   message: string;
 };
 
-export function providerRequiresPublicWebhook(providerName: string | undefined): boolean {
-  return providerName === "twilio" || providerName === "telnyx" || providerName === "plivo";
+export function providerRequiresPublicWebhook(
+  providerName: string | undefined,
+): boolean {
+  return (
+    providerName === "twilio" ||
+    providerName === "telnyx" ||
+    providerName === "plivo"
+  );
 }
 
 export function isLocalOnlyWebhookHost(hostname: string): boolean {
@@ -79,6 +85,7 @@ export function resolveWebhookExposureStatus(
   return {
     ok: false,
     configured: false,
-    message: "Set publicUrl or configure tunnel/tailscale so the provider can reach webhooks",
+    message:
+      "Set publicUrl or configure tunnel/tailscale so the provider can reach webhooks",
   };
 }

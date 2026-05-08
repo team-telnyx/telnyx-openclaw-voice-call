@@ -45,7 +45,9 @@ type VoiceCallGatewayMethod =
   | "voicecall.end"
   | "voicecall.status";
 
-type VoiceCallGatewayCallResult = { ok: true; payload: unknown } | { ok: false; error: unknown };
+type VoiceCallGatewayCallResult =
+  | { ok: true; payload: unknown }
+  | { ok: false; error: unknown };
 
 const VOICE_CALL_GATEWAY_DEFAULT_TIMEOUT_MS = 5000;
 const VOICE_CALL_GATEWAY_OPERATION_TIMEOUT_MS = 30000;
@@ -113,7 +115,10 @@ async function callVoiceCallGateway(
 }
 
 function resolveGatewayOperationTimeoutMs(config: VoiceCallConfig): number {
-  return Math.max(VOICE_CALL_GATEWAY_OPERATION_TIMEOUT_MS, config.ringTimeoutMs + 5000);
+  return Math.max(
+    VOICE_CALL_GATEWAY_OPERATION_TIMEOUT_MS,
+    config.ringTimeoutMs + 5000,
+  );
 }
 
 function resolveGatewayContinueTimeoutMs(config: VoiceCallConfig): number {
@@ -124,18 +129,28 @@ function resolveGatewayContinueTimeoutMs(config: VoiceCallConfig): number {
   );
 }
 
-function isUnknownGatewayMethod(err: unknown, method: VoiceCallGatewayMethod): boolean {
+function isUnknownGatewayMethod(
+  err: unknown,
+  method: VoiceCallGatewayMethod,
+): boolean {
   return formatErrorMessage(err).includes(`unknown method: ${method}`);
 }
 
 function readGatewayOperationId(payload: unknown): string {
-  if (isRecord(payload) && typeof payload.operationId === "string" && payload.operationId) {
+  if (
+    isRecord(payload) &&
+    typeof payload.operationId === "string" &&
+    payload.operationId
+  ) {
     return payload.operationId;
   }
   throw new Error("voicecall gateway response missing operationId");
 }
 
-function readGatewayPollTimeoutMs(payload: unknown, fallbackTimeoutMs: number): number {
+function readGatewayPollTimeoutMs(
+  payload: unknown,
+  fallbackTimeoutMs: number,
+): number {
   if (isRecord(payload) && typeof payload.pollTimeoutMs === "number") {
     return Math.max(1, Math.ceil(payload.pollTimeoutMs));
   }
@@ -157,7 +172,8 @@ function readCompletedContinueResult(
   if (payload.status === "failed") {
     return {
       status: "failed",
-      error: typeof payload.error === "string" ? payload.error : "continue failed",
+      error:
+        typeof payload.error === "string" ? payload.error : "continue failed",
     };
   }
   if (payload.status === "completed") {
@@ -193,7 +209,10 @@ async function pollVoiceCallContinueGateway(params: {
       throw new Error(result.error);
     }
     await sleep(
-      Math.min(VOICE_CALL_GATEWAY_POLL_INTERVAL_MS, Math.max(1, deadlineMs - Date.now())),
+      Math.min(
+        VOICE_CALL_GATEWAY_POLL_INTERVAL_MS,
+        Math.max(1, deadlineMs - Date.now()),
+      ),
     );
   }
 
@@ -214,7 +233,9 @@ function resolveDefaultStorePath(config: VoiceCallConfig): string {
   const existing =
     [resolvedPreferred].find((dir) => {
       try {
-        return fs.existsSync(path.join(dir, "calls.jsonl")) || fs.existsSync(dir);
+        return (
+          fs.existsSync(path.join(dir, "calls.jsonl")) || fs.existsSync(dir)
+        );
       } catch {
         return false;
       }
@@ -228,7 +249,10 @@ function percentile(values: number[], p: number): number {
     return 0;
   }
   const sorted = [...values].toSorted((a, b) => a - b);
-  const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
+  const idx = Math.min(
+    sorted.length - 1,
+    Math.max(0, Math.ceil((p / 100) * sorted.length) - 1),
+  );
   return sorted[idx] ?? 0;
 }
 
@@ -319,7 +343,12 @@ function buildSetupStatus(config: VoiceCallConfig): SetupStatus {
 function writeSetupStatus(status: SetupStatus): void {
   writeStdoutLine("Voice Call setup: %s", status.ok ? "OK" : "needs attention");
   for (const check of status.checks) {
-    writeStdoutLine("%s %s: %s", check.ok ? "OK" : "FAIL", check.id, check.message);
+    writeStdoutLine(
+      "%s %s: %s",
+      check.ok ? "OK" : "FAIL",
+      check.id,
+      check.message,
+    );
   }
 }
 
@@ -329,10 +358,14 @@ async function initiateCallAndPrintId(params: {
   message?: string;
   mode?: string;
 }) {
-  const result = await params.runtime.manager.initiateCall(params.to, undefined, {
-    message: params.message,
-    mode: resolveCallMode(params.mode),
-  });
+  const result = await params.runtime.manager.initiateCall(
+    params.to,
+    undefined,
+    {
+      message: params.message,
+      mode: resolveCallMode(params.mode),
+    },
+  );
   if (!result.success) {
     throw new Error(result.error || "initiate failed");
   }
@@ -398,7 +431,10 @@ export function registerVoiceCallCli(params: {
   const root = program
     .command("voicecall")
     .description("Voice call utilities")
-    .addHelpText("after", () => `\nDocs: https://docs.openclaw.ai/cli/voicecall\n`);
+    .addHelpText(
+      "after",
+      () => `\nDocs: https://docs.openclaw.ai/cli/voicecall\n`,
+    );
 
   root
     .command("setup")
@@ -415,7 +451,9 @@ export function registerVoiceCallCli(params: {
 
   root
     .command("smoke")
-    .description("Check Voice Call readiness and optionally place a short outbound test call")
+    .description(
+      "Check Voice Call readiness and optionally place a short outbound test call",
+    )
     .option("-t, --to <phone>", "Phone number to call for a live smoke")
     .option(
       "--message <text>",
@@ -448,16 +486,26 @@ export function registerVoiceCallCli(params: {
             writeStdoutJson({ ok: true, setup, liveCall: false });
           } else {
             writeSetupStatus(setup);
-            writeStdoutLine("live-call: skipped (pass --to and --yes to place one)");
+            writeStdoutLine(
+              "live-call: skipped (pass --to and --yes to place one)",
+            );
           }
           return;
         }
         if (!options.yes) {
           if (options.json) {
-            writeStdoutJson({ ok: true, setup, liveCall: false, wouldCall: options.to });
+            writeStdoutJson({
+              ok: true,
+              setup,
+              liveCall: false,
+              wouldCall: options.to,
+            });
           } else {
             writeSetupStatus(setup);
-            writeStdoutLine("live-call: dry run for %s (add --yes to place it)", options.to);
+            writeStdoutLine(
+              "live-call: dry run for %s (add --yes to place it)",
+              options.to,
+            );
           }
           return;
         }
@@ -475,7 +523,9 @@ export function registerVoiceCallCli(params: {
         );
         let callId: unknown;
         if (gateway.ok) {
-          callId = isRecord(gateway.payload) ? gateway.payload.callId : undefined;
+          callId = isRecord(gateway.payload)
+            ? gateway.payload.callId
+            : undefined;
         } else {
           const rt = await ensureRuntime();
           const result = await rt.manager.initiateCall(options.to, undefined, {
@@ -502,7 +552,10 @@ export function registerVoiceCallCli(params: {
   root
     .command("call")
     .description("Initiate an outbound voice call")
-    .requiredOption("-m, --message <text>", "Message to speak when call connects")
+    .requiredOption(
+      "-m, --message <text>",
+      "Message to speak when call connects",
+    )
     .option(
       "-t, --to <phone>",
       "Phone number to call (E.164 format, uses config toNumber if not set)",
@@ -512,16 +565,18 @@ export function registerVoiceCallCli(params: {
       "Call mode: notify (hangup after message) or conversation (stay open)",
       "conversation",
     )
-    .action(async (options: { message: string; to?: string; mode?: string }) => {
-      await initiateCallViaGatewayOrRuntime({
-        ensureRuntime,
-        config,
-        method: "voicecall.initiate",
-        to: options.to,
-        message: options.message,
-        mode: options.mode,
-      });
-    });
+    .action(
+      async (options: { message: string; to?: string; mode?: string }) => {
+        await initiateCallViaGatewayOrRuntime({
+          ensureRuntime,
+          config,
+          method: "voicecall.initiate",
+          to: options.to,
+          message: options.message,
+          mode: options.mode,
+        });
+      },
+    );
 
   root
     .command("start")
@@ -533,16 +588,18 @@ export function registerVoiceCallCli(params: {
       "Call mode: notify (hangup after message) or conversation (stay open)",
       "conversation",
     )
-    .action(async (options: { to: string; message?: string; mode?: string }) => {
-      await initiateCallViaGatewayOrRuntime({
-        ensureRuntime,
-        config,
-        method: "voicecall.start",
-        to: options.to,
-        message: options.message,
-        mode: options.mode,
-      });
-    });
+    .action(
+      async (options: { to: string; message?: string; mode?: string }) => {
+        await initiateCallViaGatewayOrRuntime({
+          ensureRuntime,
+          config,
+          method: "voicecall.start",
+          to: options.to,
+          message: options.message,
+          mode: options.mode,
+        });
+      },
+    );
 
   root
     .command("continue")
@@ -578,7 +635,10 @@ export function registerVoiceCallCli(params: {
         );
       }
       if (gateway.ok) {
-        if (isRecord(gateway.payload) && typeof gateway.payload.operationId === "string") {
+        if (
+          isRecord(gateway.payload) &&
+          typeof gateway.payload.operationId === "string"
+        ) {
           const result = await pollVoiceCallContinueGateway({
             operationId: readGatewayOperationId(gateway.payload),
             timeoutMs: readGatewayPollTimeoutMs(
@@ -593,7 +653,10 @@ export function registerVoiceCallCli(params: {
         return;
       }
       const rt = await ensureRuntime();
-      const result = await rt.manager.continueCall(options.callId, options.message);
+      const result = await rt.manager.continueCall(
+        options.callId,
+        options.message,
+      );
       if (!result.success) {
         throw new Error(result.error || "continue failed");
       }
@@ -702,59 +765,71 @@ export function registerVoiceCallCli(params: {
 
   root
     .command("tail")
-    .description("Tail voice-call JSONL logs (prints new lines; useful during provider tests)")
-    .option("--file <path>", "Path to calls.jsonl", resolveDefaultStorePath(config))
+    .description(
+      "Tail voice-call JSONL logs (prints new lines; useful during provider tests)",
+    )
+    .option(
+      "--file <path>",
+      "Path to calls.jsonl",
+      resolveDefaultStorePath(config),
+    )
     .option("--since <n>", "Print last N lines first", "25")
     .option("--poll <ms>", "Poll interval in ms", "250")
-    .action(async (options: { file: string; since?: string; poll?: string }) => {
-      const file = options.file;
-      const since = Math.max(0, Number(options.since ?? 0));
-      const pollMs = Math.max(50, Number(options.poll ?? 250));
+    .action(
+      async (options: { file: string; since?: string; poll?: string }) => {
+        const file = options.file;
+        const since = Math.max(0, Number(options.since ?? 0));
+        const pollMs = Math.max(50, Number(options.poll ?? 250));
 
-      if (!fs.existsSync(file)) {
-        logger.error(`No log file at ${file}`);
-        process.exit(1);
-      }
-
-      const initial = fs.readFileSync(file, "utf8");
-      const lines = initial.split("\n").filter(Boolean);
-      for (const line of lines.slice(Math.max(0, lines.length - since))) {
-        writeStdoutLine(line);
-      }
-
-      let offset = Buffer.byteLength(initial, "utf8");
-
-      for (;;) {
-        try {
-          const stat = fs.statSync(file);
-          if (stat.size < offset) {
-            offset = 0;
-          }
-          if (stat.size > offset) {
-            const fd = fs.openSync(file, "r");
-            try {
-              const buf = Buffer.alloc(stat.size - offset);
-              fs.readSync(fd, buf, 0, buf.length, offset);
-              offset = stat.size;
-              const text = buf.toString("utf8");
-              for (const line of text.split("\n").filter(Boolean)) {
-                writeStdoutLine(line);
-              }
-            } finally {
-              fs.closeSync(fd);
-            }
-          }
-        } catch {
-          // ignore and retry
+        if (!fs.existsSync(file)) {
+          logger.error(`No log file at ${file}`);
+          process.exit(1);
         }
-        await sleep(pollMs);
-      }
-    });
+
+        const initial = fs.readFileSync(file, "utf8");
+        const lines = initial.split("\n").filter(Boolean);
+        for (const line of lines.slice(Math.max(0, lines.length - since))) {
+          writeStdoutLine(line);
+        }
+
+        let offset = Buffer.byteLength(initial, "utf8");
+
+        for (;;) {
+          try {
+            const stat = fs.statSync(file);
+            if (stat.size < offset) {
+              offset = 0;
+            }
+            if (stat.size > offset) {
+              const fd = fs.openSync(file, "r");
+              try {
+                const buf = Buffer.alloc(stat.size - offset);
+                fs.readSync(fd, buf, 0, buf.length, offset);
+                offset = stat.size;
+                const text = buf.toString("utf8");
+                for (const line of text.split("\n").filter(Boolean)) {
+                  writeStdoutLine(line);
+                }
+              } finally {
+                fs.closeSync(fd);
+              }
+            }
+          } catch {
+            // ignore and retry
+          }
+          await sleep(pollMs);
+        }
+      },
+    );
 
   root
     .command("latency")
     .description("Summarize turn latency metrics from voice-call JSONL logs")
-    .option("--file <path>", "Path to calls.jsonl", resolveDefaultStorePath(config))
+    .option(
+      "--file <path>",
+      "Path to calls.jsonl",
+      resolveDefaultStorePath(config),
+    )
     .option("--last <n>", "Analyze last N records", "200")
     .action(async (options: { file: string; last?: string }) => {
       const file = options.file;
@@ -773,7 +848,10 @@ export function registerVoiceCallCli(params: {
       for (const line of lines) {
         try {
           const parsed = JSON.parse(line) as {
-            metadata?: { lastTurnLatencyMs?: unknown; lastTurnListenWaitMs?: unknown };
+            metadata?: {
+              lastTurnLatencyMs?: unknown;
+              lastTurnListenWaitMs?: unknown;
+            };
           };
           const latency = parsed.metadata?.lastTurnLatencyMs;
           const listenWait = parsed.metadata?.lastTurnListenWaitMs;
@@ -798,15 +876,28 @@ export function registerVoiceCallCli(params: {
   root
     .command("expose")
     .description("Enable/disable Tailscale serve/funnel for the webhook")
-    .option("--mode <mode>", "off | serve (tailnet) | funnel (public)", "funnel")
-    .option("--path <path>", "Tailscale path to expose (recommend matching serve.path)")
+    .option(
+      "--mode <mode>",
+      "off | serve (tailnet) | funnel (public)",
+      "funnel",
+    )
+    .option(
+      "--path <path>",
+      "Tailscale path to expose (recommend matching serve.path)",
+    )
     .option("--port <port>", "Local webhook port")
     .option("--serve-path <path>", "Local webhook path")
     .action(
-      async (options: { mode?: string; port?: string; path?: string; servePath?: string }) => {
+      async (options: {
+        mode?: string;
+        port?: string;
+        path?: string;
+        servePath?: string;
+      }) => {
         const mode = resolveMode(options.mode ?? "funnel");
         const servePort = Number(options.port ?? config.serve.port ?? 3334);
-        const servePath = options.servePath ?? config.serve.path ?? "/voice/webhook";
+        const servePath =
+          options.servePath ?? config.serve.path ?? "/voice/webhook";
         const tsPath = options.path ?? config.tailscale?.path ?? servePath;
 
         const localUrl = `http://127.0.0.1:${servePort}`;

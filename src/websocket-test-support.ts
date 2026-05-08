@@ -2,10 +2,16 @@ import { once } from "node:events";
 import http from "node:http";
 import { WebSocket } from "ws";
 
-export const withTimeout = async <T>(promise: Promise<T>, timeoutMs = 2000): Promise<T> => {
+export const withTimeout = async <T>(
+  promise: Promise<T>,
+  timeoutMs = 2000,
+): Promise<T> => {
   let timer: ReturnType<typeof setTimeout> | null = null;
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`Timed out after ${timeoutMs}ms`)), timeoutMs);
+    timer = setTimeout(
+      () => reject(new Error(`Timed out after ${timeoutMs}ms`)),
+      timeoutMs,
+    );
   });
 
   try {
@@ -64,9 +70,12 @@ export const waitForClose = async (
   code: number;
   reason: string;
 }> => {
-  const [code, reason] = (await withTimeout(once(ws, "close") as Promise<[number, Buffer]>)) ?? [];
+  const [code, reason] =
+    (await withTimeout(once(ws, "close") as Promise<[number, Buffer]>)) ?? [];
   return {
     code,
-    reason: Buffer.isBuffer(reason) ? reason.toString("utf8") : String(reason || ""),
+    reason: Buffer.isBuffer(reason)
+      ? reason.toString("utf8")
+      : String(reason || ""),
   };
 };

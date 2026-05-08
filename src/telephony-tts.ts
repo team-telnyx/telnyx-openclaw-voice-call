@@ -89,7 +89,11 @@ export function createTelephonyTtsProvider(params: {
         throw new Error(result.error ?? "TTS conversion failed");
       }
 
-      if (result.fallbackFrom && result.provider && result.fallbackFrom !== result.provider) {
+      if (
+        result.fallbackFrom &&
+        result.provider &&
+        result.fallbackFrom !== result.provider
+      ) {
         const attemptedChain =
           result.attemptedProviders && result.attemptedProviders.length > 0
             ? result.attemptedProviders.join(" -> ")
@@ -104,7 +108,10 @@ export function createTelephonyTtsProvider(params: {
   };
 }
 
-function applyTtsOverride(coreConfig: CoreConfig, override?: VoiceCallTtsConfig): CoreConfig {
+function applyTtsOverride(
+  coreConfig: CoreConfig,
+  override?: VoiceCallTtsConfig,
+): CoreConfig {
   if (!override) {
     return coreConfig;
   }
@@ -156,7 +163,8 @@ function resolveTelephonyModelOverridePolicy(
       allowSeed: false,
     };
   }
-  const allow = (value: boolean | undefined, defaultValue = true) => value ?? defaultValue;
+  const allow = (value: boolean | undefined, defaultValue = true) =>
+    value ?? defaultValue;
   return {
     enabled: true,
     allowText: allow(overrides?.allowText),
@@ -172,14 +180,17 @@ function resolveTelephonyModelOverridePolicy(
 function readTelephonyModelOverrides(
   ttsConfig: VoiceCallTtsConfig | undefined,
 ): TelephonyModelOverrideConfig | undefined {
-  const value = (ttsConfig as Record<string, unknown> | undefined)?.modelOverrides;
+  const value = (ttsConfig as Record<string, unknown> | undefined)
+    ?.modelOverrides;
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as TelephonyModelOverrideConfig)
     : undefined;
 }
 
 function normalizeProviderId(value: unknown): string | undefined {
-  return typeof value === "string" ? value.trim().toLowerCase() || undefined : undefined;
+  return typeof value === "string"
+    ? value.trim().toLowerCase() || undefined
+    : undefined;
 }
 
 function asProviderConfig(value: unknown): SpeechProviderConfig {
@@ -219,7 +230,9 @@ function collectTelephonyProviderConfigs(
     "summaryModel",
     "timeoutMs",
   ]);
-  for (const [key, value] of Object.entries(ttsConfig as Record<string, unknown>)) {
+  for (const [key, value] of Object.entries(
+    ttsConfig as Record<string, unknown>,
+  )) {
     if (
       reservedKeys.has(key) ||
       typeof value !== "object" ||

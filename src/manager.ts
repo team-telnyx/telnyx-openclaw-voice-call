@@ -31,7 +31,10 @@ import {
 } from "./types.js";
 import { resolveUserPath } from "./utils.js";
 
-function markRestoredCallSkipped(call: CallRecord, endReason: "completed" | "timeout"): void {
+function markRestoredCallSkipped(
+  call: CallRecord,
+  endReason: "completed" | "timeout",
+): void {
   call.endedAt = Date.now();
   call.endReason = endReason;
   call.state = endReason;
@@ -45,7 +48,10 @@ function incrementRestoreStatusCount(
   counts.set(key, (counts.get(key) ?? 0) + 1);
 }
 
-function resolveDefaultStoreBase(config: VoiceCallConfig, storePath?: string): string {
+function resolveDefaultStoreBase(
+  config: VoiceCallConfig,
+  storePath?: string,
+): string {
   const rawOverride = storePath?.trim() || config.store?.trim();
   if (rawOverride) {
     return resolveUserPath(rawOverride);
@@ -55,7 +61,9 @@ function resolveDefaultStoreBase(config: VoiceCallConfig, storePath?: string): s
   const existing =
     candidates.find((dir) => {
       try {
-        return fs.existsSync(path.join(dir, "calls.jsonl")) || fs.existsSync(dir);
+        return (
+          fs.existsSync(path.join(dir, "calls.jsonl")) || fs.existsSync(dir)
+        );
       } catch {
         return false;
       }
@@ -96,7 +104,10 @@ export class CallManager {
    * Initialize the call manager with a provider.
    * Verifies persisted calls with the provider and restarts timers.
    */
-  async initialize(provider: VoiceCallProvider, webhookUrl: string): Promise<void> {
+  async initialize(
+    provider: VoiceCallProvider,
+    webhookUrl: string,
+  ): Promise<void> {
     this.provider = provider;
     this.webhookUrl = webhookUrl;
 
@@ -106,7 +117,10 @@ export class CallManager {
     this.processedEventIds = persisted.processedEventIds;
     this.rejectedProviderCallIds = persisted.rejectedProviderCallIds;
 
-    const verified = await this.verifyRestoredCalls(provider, persisted.activeCalls);
+    const verified = await this.verifyRestoredCalls(
+      provider,
+      persisted.activeCalls,
+    );
     this.activeCalls = verified;
 
     // Rebuild providerCallIdMap from verified calls only
@@ -137,10 +151,14 @@ export class CallManager {
           callId,
           timeoutMs: maxDurationMs - elapsed,
           onTimeout: async (id) => {
-            await endCallWithContext(this.getContext(), id, { reason: "timeout" });
+            await endCallWithContext(this.getContext(), id, {
+              reason: "timeout",
+            });
           },
         });
-        console.log(`[voice-call] Restarted max-duration timer for restored call ${callId}`);
+        console.log(
+          `[voice-call] Restarted max-duration timer for restored call ${callId}`,
+        );
       }
     }
     if (skippedAlreadyElapsedTimers > 0) {
@@ -150,7 +168,9 @@ export class CallManager {
     }
 
     if (verified.size > 0) {
-      console.log(`[voice-call] Restored ${verified.size} active call(s) from store`);
+      console.log(
+        `[voice-call] Restored ${verified.size} active call(s) from store`,
+      );
     }
   }
 
@@ -170,7 +190,11 @@ export class CallManager {
     const maxAgeMs = this.config.maxDurationSeconds * 1000;
     const now = Date.now();
     const verified = new Map<CallId, CallRecord>();
-    const verifyTasks: Array<{ callId: CallId; call: CallRecord; promise: Promise<void> }> = [];
+    const verifyTasks: Array<{
+      callId: CallId;
+      call: CallRecord;
+      promise: Promise<void>;
+    }> = [];
     let skippedNoProviderCallId = 0;
     let skippedOlderThanMaxDuration = 0;
     const skippedTerminalStatuses = new Map<string, number>();
@@ -212,7 +236,10 @@ export class CallManager {
           .getCallStatus({ providerCallId: call.providerCallId })
           .then((result) => {
             if (result.isTerminal) {
-              incrementRestoreStatusCount(skippedTerminalStatuses, result.status);
+              incrementRestoreStatusCount(
+                skippedTerminalStatuses,
+                result.status,
+              );
               markRestoredCallSkipped(call, "completed");
               persistCallRecord(this.storePath, call);
             } else if (result.isUnknown) {
@@ -243,10 +270,12 @@ export class CallManager {
         `[voice-call] Skipped ${skippedOlderThanMaxDuration} restored call(s) older than maxDurationSeconds`,
       );
     }
-    for (const [status, count] of [...skippedTerminalStatuses].toSorted(([a], [b]) =>
-      a.localeCompare(b),
+    for (const [status, count] of [...skippedTerminalStatuses].toSorted(
+      ([a], [b]) => a.localeCompare(b),
     )) {
-      console.log(`[voice-call] Skipped ${count} restored call(s) with provider status: ${status}`);
+      console.log(
+        `[voice-call] Skipped ${count} restored call(s) with provider status: ${status}`,
+      );
     }
     if (keptVerifiedActive > 0) {
       console.log(
@@ -287,14 +316,20 @@ export class CallManager {
   /**
    * Speak to user in an active call.
    */
-  async speak(callId: CallId, text: string): Promise<{ success: boolean; error?: string }> {
+  async speak(
+    callId: CallId,
+    text: string,
+  ): Promise<{ success: boolean; error?: string }> {
     return speakWithContext(this.getContext(), callId, text);
   }
 
   /**
    * Send DTMF digits to an active call.
    */
-  async sendDtmf(callId: CallId, digits: string): Promise<{ success: boolean; error?: string }> {
+  async sendDtmf(
+    callId: CallId,
+    digits: string,
+  ): Promise<{ success: boolean; error?: string }> {
     return sendDtmfWithContext(this.getContext(), callId, digits);
   }
 
@@ -350,14 +385,21 @@ export class CallManager {
   }
 
   private shouldDeferConversationInitialMessageUntilStreamConnect(): boolean {
-    if (!this.provider || this.provider.name !== "twilio" || !this.config.streaming.enabled) {
+    if (
+      !this.provider ||
+      this.provider.name !== "twilio" ||
+      !this.config.streaming.enabled
+    ) {
       return false;
     }
 
     const streamAwareProvider = this.provider as VoiceCallProvider & {
       isConversationStreamConnectEnabled?: () => boolean;
     };
-    if (typeof streamAwareProvider.isConversationStreamConnectEnabled !== "function") {
+    if (
+      typeof streamAwareProvider.isConversationStreamConnectEnabled !==
+      "function"
+    ) {
       return false;
     }
 
@@ -365,7 +407,8 @@ export class CallManager {
   }
 
   private maybeSpeakInitialMessageOnAnswered(call: CallRecord): void {
-    const initialMessage = normalizeOptionalString(call.metadata?.initialMessage) ?? "";
+    const initialMessage =
+      normalizeOptionalString(call.metadata?.initialMessage) ?? "";
 
     if (!initialMessage) {
       return;
@@ -401,20 +444,30 @@ export class CallManager {
   }
 
   private maybeStartProviderRealtimeStream(call: CallRecord): void {
-    if (!this.provider || this.provider.name === "twilio" || !call.providerCallId) {
+    if (
+      !this.provider ||
+      this.provider.name === "twilio" ||
+      !call.providerCallId
+    ) {
       return;
     }
     if (typeof this.provider.startRealtimeStream !== "function") {
       return;
     }
     const metadata = call.metadata ?? {};
-    if (metadata.realtimeStreamStartedAt || metadata.realtimeStreamStartPending) {
+    if (
+      metadata.realtimeStreamStartedAt ||
+      metadata.realtimeStreamStartPending
+    ) {
       return;
     }
     metadata.realtimeStreamStartPending = true;
     call.metadata = metadata;
     void this.provider
-      .startRealtimeStream({ callId: call.callId, providerCallId: call.providerCallId })
+      .startRealtimeStream({
+        callId: call.callId,
+        providerCallId: call.providerCallId,
+      })
       .then(() => {
         const nextMetadata = call.metadata ?? {};
         delete nextMetadata.realtimeStreamStartPending;

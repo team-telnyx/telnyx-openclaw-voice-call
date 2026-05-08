@@ -1,7 +1,10 @@
 import crypto from "node:crypto";
 import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
 import { isAllowlistedCaller, normalizePhoneNumber } from "../allowlist.js";
-import { resolveVoiceCallEffectiveConfig, resolveVoiceCallSessionKey } from "../config.js";
+import {
+  resolveVoiceCallEffectiveConfig,
+  resolveVoiceCallSessionKey,
+} from "../config.js";
 import type { CallRecord, NormalizedEvent } from "../types.js";
 import type { CallManagerContext } from "./context.js";
 import { finalizeCall } from "./lifecycle.js";
@@ -25,7 +28,10 @@ type EventContext = Pick<
   | "onCallAnswered"
 >;
 
-function shouldAcceptInbound(config: EventContext["config"], from: string | undefined): boolean {
+function shouldAcceptInbound(
+  config: EventContext["config"],
+  from: string | undefined,
+): boolean {
   const { inboundPolicy: policy, allowFrom } = config;
 
   switch (policy) {
@@ -90,9 +96,12 @@ function createWebhookCall(params: {
     metadata: {
       initialMessage:
         params.direction === "inbound"
-          ? effectiveConfig.inboundGreeting || "Hello! How can I help you today?"
+          ? effectiveConfig.inboundGreeting ||
+            "Hello! How can I help you today?"
           : undefined,
-      ...(effective.numberRouteKey ? { numberRouteKey: effective.numberRouteKey } : {}),
+      ...(effective.numberRouteKey
+        ? { numberRouteKey: effective.numberRouteKey }
+        : {}),
     },
   };
 
@@ -120,7 +129,9 @@ export function processEvent(ctx: EventContext, event: NormalizedEvent): void {
 
   const providerCallId = event.providerCallId;
   const eventDirection =
-    event.direction === "inbound" || event.direction === "outbound" ? event.direction : undefined;
+    event.direction === "inbound" || event.direction === "outbound"
+      ? event.direction
+      : undefined;
 
   // Auto-register untracked calls arriving via webhook. This covers both
   // true inbound calls and externally-initiated outbound-api calls (e.g. calls
@@ -128,7 +139,10 @@ export function processEvent(ctx: EventContext, event: NormalizedEvent): void {
   if (!call && providerCallId && eventDirection) {
     // Apply inbound policy for true inbound calls; external outbound-api calls
     // are implicitly trusted because the caller controls the webhook URL.
-    if (eventDirection === "inbound" && !shouldAcceptInbound(ctx.config, event.from)) {
+    if (
+      eventDirection === "inbound" &&
+      !shouldAcceptInbound(ctx.config, event.from)
+    ) {
       const pid = providerCallId;
       if (!ctx.provider) {
         console.warn(
@@ -152,7 +166,10 @@ export function processEvent(ctx: EventContext, event: NormalizedEvent): void {
         .catch((err) => {
           ctx.rejectedProviderCallIds.delete(pid);
           const message = formatErrorMessage(err);
-          console.warn(`[voice-call] Failed to reject inbound call ${pid}:`, message);
+          console.warn(
+            `[voice-call] Failed to reject inbound call ${pid}:`,
+            message,
+          );
         });
       return;
     }
@@ -185,7 +202,9 @@ export function processEvent(ctx: EventContext, event: NormalizedEvent): void {
     }
   }
 
-  const shouldCommitReplayKey = !(event.type === "call.error" && event.retryable);
+  const shouldCommitReplayKey = !(
+    event.type === "call.error" && event.retryable
+  );
   if (shouldCommitReplayKey) {
     ctx.processedEventIds.add(dedupeKey);
     call.processedEventIds.push(dedupeKey);
@@ -194,7 +213,11 @@ export function processEvent(ctx: EventContext, event: NormalizedEvent): void {
   switch (event.type) {
     case "call.initiated":
       transitionState(call, "initiated");
-      if (call.direction === "inbound" && call.providerCallId && ctx.provider?.answerCall) {
+      if (
+        call.direction === "inbound" &&
+        call.providerCallId &&
+        ctx.provider?.answerCall
+      ) {
         void ctx.provider
           .answerCall({
             callId: call.callId,

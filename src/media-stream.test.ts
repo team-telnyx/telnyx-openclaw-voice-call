@@ -5,7 +5,10 @@ import type {
   RealtimeTranscriptionSession,
   RealtimeTranscriptionSessionCreateRequest,
 } from "openclaw/plugin-sdk/realtime-transcription";
-import { createTalkSessionController, type TalkEvent } from "openclaw/plugin-sdk/realtime-voice";
+import {
+  createTalkSessionController,
+  type TalkEvent,
+} from "openclaw/plugin-sdk/realtime-voice";
 import { describe, expect, it, vi } from "vitest";
 import { WebSocket } from "ws";
 import { MediaStreamHandler, sanitizeLogText } from "./media-stream.js";
@@ -203,7 +206,9 @@ describe("MediaStreamHandler security hardening", () => {
       );
       await flush();
       await vi.waitFor(() => {
-        expect(talkEvents.map((event) => event.type)).toContain("session.ready");
+        expect(talkEvents.map((event) => event.type)).toContain(
+          "session.ready",
+        );
       });
 
       ws.send(
@@ -234,7 +239,9 @@ describe("MediaStreamHandler security hardening", () => {
       ws.close();
       await waitForClose(ws);
       await vi.waitFor(() => {
-        expect(talkEvents.map((event) => event.type)).toContain("session.closed");
+        expect(talkEvents.map((event) => event.type)).toContain(
+          "session.closed",
+        );
       });
 
       expect(talkEvents.map((event) => event.type)).toEqual([
@@ -264,14 +271,21 @@ describe("MediaStreamHandler security hardening", () => {
           seq: 1,
         }),
       );
-      expect(talkEvents.find((event) => event.type === "transcript.done")).toEqual(
+      expect(
+        talkEvents.find((event) => event.type === "transcript.done"),
+      ).toEqual(
         expect.objectContaining({
           final: true,
           turnId: "MZ-talk:turn-1",
-          payload: expect.objectContaining({ text: "hello there", role: "user" }),
+          payload: expect.objectContaining({
+            text: "hello there",
+            role: "user",
+          }),
         }),
       );
-      expect(talkEvents.find((event) => event.type === "turn.cancelled")).toEqual(
+      expect(
+        talkEvents.find((event) => event.type === "turn.cancelled"),
+      ).toEqual(
         expect.objectContaining({
           final: true,
           turnId: "MZ-talk:turn-2",
@@ -321,11 +335,17 @@ describe("MediaStreamHandler security hardening", () => {
       }),
     });
 
-    const result = handler.sendAudio("MZ-backpressure", Buffer.alloc(160, 0xff));
+    const result = handler.sendAudio(
+      "MZ-backpressure",
+      Buffer.alloc(160, 0xff),
+    );
 
     expect(result.sent).toBe(false);
     expect(ws.send).not.toHaveBeenCalled();
-    expect(ws.close).toHaveBeenCalledWith(1013, "Backpressure: send buffer exceeded");
+    expect(ws.close).toHaveBeenCalledWith(
+      1013,
+      "Backpressure: send buffer exceeded",
+    );
   });
 
   it("fails sends when buffered bytes exceed cap after enqueueing a frame", () => {
@@ -368,7 +388,10 @@ describe("MediaStreamHandler security hardening", () => {
 
     expect(ws.send).toHaveBeenCalledTimes(1);
     expect(result.sent).toBe(false);
-    expect(ws.close).toHaveBeenCalledWith(1013, "Backpressure: send buffer exceeded");
+    expect(ws.close).toHaveBeenCalledWith(
+      1013,
+      "Backpressure: send buffer exceeded",
+    );
   });
 
   it("sanitizes websocket close reason before logging", () => {
@@ -380,8 +403,11 @@ describe("MediaStreamHandler security hardening", () => {
   });
 
   it("closes idle pre-start connections after timeout", async () => {
-    const shouldAcceptStreamCalls: Array<{ callId: string; streamSid: string; token?: string }> =
-      [];
+    const shouldAcceptStreamCalls: Array<{
+      callId: string;
+      streamSid: string;
+      token?: string;
+    }> = [];
     const handler = new MediaStreamHandler({
       transcriptionProvider: createStubSttProvider(),
       providerConfig: {},
@@ -438,7 +464,8 @@ describe("MediaStreamHandler security hardening", () => {
       preStartTimeoutMs: 5_000,
       maxPendingConnections: 10,
       maxPendingConnectionsPerIp: 1,
-      resolveClientIp: (request) => String(request.headers["x-forwarded-for"] ?? ""),
+      resolveClientIp: (request) =>
+        String(request.headers["x-forwarded-for"] ?? ""),
     });
     const server = await startWsServer(handler);
 
@@ -862,8 +889,11 @@ describe("MediaStreamHandler security hardening", () => {
   });
 
   it("rejects oversized pre-start frames at the websocket maxPayload guard before validation runs", async () => {
-    const shouldAcceptStreamCalls: Array<{ callId: string; streamSid: string; token?: string }> =
-      [];
+    const shouldAcceptStreamCalls: Array<{
+      callId: string;
+      streamSid: string;
+      token?: string;
+    }> = [];
     const handler = new MediaStreamHandler({
       transcriptionProvider: createStubSttProvider(),
       providerConfig: {},
@@ -883,7 +913,10 @@ describe("MediaStreamHandler security hardening", () => {
           streamSid: "MZ-oversized",
           start: {
             callSid: "CA-oversized",
-            customParameters: { token: "token-oversized", padding: "A".repeat(256 * 1024) },
+            customParameters: {
+              token: "token-oversized",
+              padding: "A".repeat(256 * 1024),
+            },
           },
         }),
       );

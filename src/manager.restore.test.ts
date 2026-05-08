@@ -7,7 +7,10 @@ import {
   makePersistedCall,
   writeCallsToStore,
 } from "./manager.test-harness.js";
-import { flushPendingCallRecordWritesForTest, loadActiveCallsFromStore } from "./manager/store.js";
+import {
+  flushPendingCallRecordWritesForTest,
+  loadActiveCallsFromStore,
+} from "./manager/store.js";
 
 function requireSingleActiveCall(manager: CallManager) {
   const activeCalls = manager.getActiveCalls();
@@ -240,7 +243,9 @@ describe("CallManager verification on restore", () => {
     expect(logSpy).toHaveBeenCalledWith(
       "[voice-call] Kept 1 restored call(s) after verification failure (relying on timer)",
     );
-    expect(logSpy.mock.calls.map((call) => String(call[0])).join("\n")).not.toContain("terminal-a");
+    expect(
+      logSpy.mock.calls.map((call) => String(call[0])).join("\n"),
+    ).not.toContain("terminal-a");
 
     logSpy.mockRestore();
   });

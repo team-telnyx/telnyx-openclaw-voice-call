@@ -24,7 +24,12 @@ import { generateDtmfRedirectTwiml, generateNotifyTwiml } from "./twiml.js";
 
 type InitiateContext = Pick<
   CallManagerContext,
-  "activeCalls" | "providerCallIdMap" | "provider" | "config" | "storePath" | "webhookUrl"
+  | "activeCalls"
+  | "providerCallIdMap"
+  | "provider"
+  | "config"
+  | "storePath"
+  | "webhookUrl"
 >;
 
 type SpeakContext = Pick<
@@ -55,7 +60,10 @@ type EndCallContext = Pick<
   | "maxDurationTimers"
 >;
 
-type ConnectedCallContext = Pick<CallManagerContext, "activeCalls" | "provider">;
+type ConnectedCallContext = Pick<
+  CallManagerContext,
+  "activeCalls" | "provider"
+>;
 
 type ConnectedCallLookup =
   | { kind: "error"; error: string }
@@ -76,7 +84,10 @@ type ConnectedCallResolution =
       provider: NonNullable<ConnectedCallContext["provider"]>;
     };
 
-function lookupConnectedCall(ctx: ConnectedCallContext, callId: CallId): ConnectedCallLookup {
+function lookupConnectedCall(
+  ctx: ConnectedCallContext,
+  callId: CallId,
+): ConnectedCallLookup {
   const call = ctx.activeCalls.get(callId);
   if (!call) {
     return { kind: "error", error: "Call not found" };
@@ -87,10 +98,18 @@ function lookupConnectedCall(ctx: ConnectedCallContext, callId: CallId): Connect
   if (TerminalStates.has(call.state)) {
     return { kind: "ended", call };
   }
-  return { kind: "ok", call, providerCallId: call.providerCallId, provider: ctx.provider };
+  return {
+    kind: "ok",
+    call,
+    providerCallId: call.providerCallId,
+    provider: ctx.provider,
+  };
 }
 
-function requireConnectedCall(ctx: ConnectedCallContext, callId: CallId): ConnectedCallResolution {
+function requireConnectedCall(
+  ctx: ConnectedCallContext,
+  callId: CallId,
+): ConnectedCallResolution {
   const lookup = lookupConnectedCall(ctx, callId);
   if (lookup.kind === "error") {
     return { ok: false, error: lookup.error };
@@ -155,7 +174,8 @@ export async function initiateCall(
 
   const callId = crypto.randomUUID();
   const from =
-    ctx.config.fromNumber || (ctx.provider?.name === "mock" ? "+15550000000" : undefined);
+    ctx.config.fromNumber ||
+    (ctx.provider?.name === "mock" ? "+15550000000" : undefined);
   if (!from) {
     return { callId: "", success: false, error: "fromNumber not configured" };
   }
@@ -193,7 +213,9 @@ export async function initiateCall(
     if (mode === "notify" && initialMessage) {
       const pollyVoice = mapVoiceToPolly(resolvePreferredTtsVoice(ctx.config));
       inlineTwiml = generateNotifyTwiml(initialMessage, pollyVoice);
-      console.log(`[voice-call] Using inline TwiML for notify mode (voice: ${pollyVoice})`);
+      console.log(
+        `[voice-call] Using inline TwiML for notify mode (voice: ${pollyVoice})`,
+      );
     } else if (dtmfSequence) {
       preConnectTwiml = generateDtmfRedirectTwiml(dtmfSequence, ctx.webhookUrl);
       console.log(
@@ -249,7 +271,9 @@ export async function speak(
     persistCallRecord(ctx.storePath, call);
 
     const numberRouteKey =
-      typeof call.metadata?.numberRouteKey === "string" ? call.metadata.numberRouteKey : call.to;
+      typeof call.metadata?.numberRouteKey === "string"
+        ? call.metadata.numberRouteKey
+        : call.to;
     const voice = resolvePreferredTtsVoice(
       resolveVoiceCallEffectiveConfig(ctx.config, numberRouteKey).config,
     );
@@ -272,7 +296,9 @@ export async function speak(
   }
 }
 
-function shouldStartListeningAfterInitialMessage(ctx: ConversationContext): boolean {
+function shouldStartListeningAfterInitialMessage(
+  ctx: ConversationContext,
+): boolean {
   if (ctx.provider?.name !== "twilio") {
     return true;
   }
@@ -299,7 +325,10 @@ export async function sendDtmf(
     return { success: false, error: connected.error };
   }
   if (!connected.provider.sendDtmf) {
-    return { success: false, error: `${connected.provider.name} does not support outbound DTMF` };
+    return {
+      success: false,
+      error: `${connected.provider.name} does not support outbound DTMF`,
+    };
   }
 
   try {
@@ -324,7 +353,9 @@ export async function speakInitialMessage(
     providerCallId,
   });
   if (!call) {
-    console.warn(`[voice-call] speakInitialMessage: no call found for ${providerCallId}`);
+    console.warn(
+      `[voice-call] speakInitialMessage: no call found for ${providerCallId}`,
+    );
     return;
   }
 
@@ -332,7 +363,9 @@ export async function speakInitialMessage(
   const mode = (call.metadata?.mode as CallMode) ?? "conversation";
 
   if (!initialMessage) {
-    console.log(`[voice-call] speakInitialMessage: no initial message for ${call.callId}`);
+    console.log(
+      `[voice-call] speakInitialMessage: no initial message for ${call.callId}`,
+    );
     return;
   }
 
@@ -345,10 +378,14 @@ export async function speakInitialMessage(
   ctx.initialMessageInFlight.add(call.callId);
 
   try {
-    console.log(`[voice-call] Speaking initial message for call ${call.callId} (mode: ${mode})`);
+    console.log(
+      `[voice-call] Speaking initial message for call ${call.callId} (mode: ${mode})`,
+    );
     const result = await speak(ctx, call.callId, initialMessage);
     if (!result.success) {
-      console.warn(`[voice-call] Failed to speak initial message: ${result.error}`);
+      console.warn(
+        `[voice-call] Failed to speak initial message: ${result.error}`,
+      );
       return;
     }
 
@@ -360,11 +397,15 @@ export async function speakInitialMessage(
 
     if (mode === "notify") {
       const delaySec = ctx.config.outbound.notifyHangupDelaySec;
-      console.log(`[voice-call] Notify mode: auto-hangup in ${delaySec}s for call ${call.callId}`);
+      console.log(
+        `[voice-call] Notify mode: auto-hangup in ${delaySec}s for call ${call.callId}`,
+      );
       setTimeout(async () => {
         const currentCall = ctx.activeCalls.get(call.callId);
         if (currentCall && !TerminalStates.has(currentCall.state)) {
-          console.log(`[voice-call] Notify mode: hanging up call ${call.callId}`);
+          console.log(
+            `[voice-call] Notify mode: hanging up call ${call.callId}`,
+          );
           await endCall(ctx, call.callId);
         }
       }, delaySec * 1000);
@@ -402,7 +443,8 @@ export async function continueCall(
   ctx.activeTurnCalls.add(callId);
 
   const turnStartedAt = Date.now();
-  const turnToken = provider.name === "twilio" ? crypto.randomUUID() : undefined;
+  const turnToken =
+    provider.name === "twilio" ? crypto.randomUUID() : undefined;
 
   try {
     await speak(ctx, callId, prompt);

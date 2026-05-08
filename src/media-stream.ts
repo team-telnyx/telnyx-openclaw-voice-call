@@ -42,7 +42,11 @@ export interface MediaStreamConfig {
   /** Optional trusted resolver for the source IP used by pending-connection guards. */
   resolveClientIp?: (request: IncomingMessage) => string | undefined;
   /** Validate whether to accept a media stream for the given call ID */
-  shouldAcceptStream?: (params: { callId: string; streamSid: string; token?: string }) => boolean;
+  shouldAcceptStream?: (params: {
+    callId: string;
+    streamSid: string;
+    token?: string;
+  }) => boolean;
   /** Callback when transcript is received */
   onTranscript?: (callId: string, transcript: string) => void;
   /** Callback for partial transcripts (streaming UI) */
@@ -143,10 +147,13 @@ export class MediaStreamHandler {
 
   constructor(config: MediaStreamConfig) {
     this.config = config;
-    this.preStartTimeoutMs = config.preStartTimeoutMs ?? DEFAULT_PRE_START_TIMEOUT_MS;
-    this.maxPendingConnections = config.maxPendingConnections ?? DEFAULT_MAX_PENDING_CONNECTIONS;
+    this.preStartTimeoutMs =
+      config.preStartTimeoutMs ?? DEFAULT_PRE_START_TIMEOUT_MS;
+    this.maxPendingConnections =
+      config.maxPendingConnections ?? DEFAULT_MAX_PENDING_CONNECTIONS;
     this.maxPendingConnectionsPerIp =
-      config.maxPendingConnectionsPerIp ?? DEFAULT_MAX_PENDING_CONNECTIONS_PER_IP;
+      config.maxPendingConnectionsPerIp ??
+      DEFAULT_MAX_PENDING_CONNECTIONS_PER_IP;
     this.maxConnections = config.maxConnections ?? DEFAULT_MAX_CONNECTIONS;
   }
 
@@ -204,7 +211,10 @@ export class MediaStreamHandler {
   /**
    * Handle new WebSocket connection from Twilio.
    */
-  private async handleConnection(ws: WebSocket, _request: IncomingMessage): Promise<void> {
+  private async handleConnection(
+    ws: WebSocket,
+    _request: IncomingMessage,
+  ): Promise<void> {
     let session: StreamSession | null = null;
     const streamToken = this.getStreamToken(_request);
     const ip = this.getClientIp(_request);
@@ -266,7 +276,9 @@ export class MediaStreamHandler {
     });
 
     ws.on("close", (code, reason) => {
-      const rawReason = Buffer.isBuffer(reason) ? reason.toString("utf8") : String(reason || "");
+      const rawReason = Buffer.isBuffer(reason)
+        ? reason.toString("utf8")
+        : String(reason || "");
       const reasonText = sanitizeLogText(rawReason, CLOSE_REASON_LOG_MAX_CHARS);
       console.log(
         `[MediaStream] WebSocket closed (code: ${code}, reason: ${reasonText || "none"})`,
@@ -296,9 +308,12 @@ export class MediaStreamHandler {
     // Prefer token from start message customParameters (set via TwiML <Parameter>),
     // falling back to query string token. Twilio strips query params from WebSocket
     // URLs but reliably delivers <Parameter> values in customParameters.
-    const effectiveToken = message.start?.customParameters?.token ?? streamToken;
+    const effectiveToken =
+      message.start?.customParameters?.token ?? streamToken;
 
-    console.log(`[MediaStream] Stream started: ${streamSid} (call: ${callSid})`);
+    console.log(
+      `[MediaStream] Stream started: ${streamSid} (call: ${callSid})`,
+    );
     if (!callSid) {
       console.warn("[MediaStream] Missing callSid; closing stream");
       ws.close(1008, "Missing callSid");
@@ -306,9 +321,15 @@ export class MediaStreamHandler {
     }
     if (
       this.config.shouldAcceptStream &&
-      !this.config.shouldAcceptStream({ callId: callSid, streamSid, token: effectiveToken })
+      !this.config.shouldAcceptStream({
+        callId: callSid,
+        streamSid,
+        token: effectiveToken,
+      })
     ) {
-      console.warn(`[MediaStream] Rejecting stream for unknown call: ${callSid}`);
+      console.warn(
+        `[MediaStream] Rejecting stream for unknown call: ${callSid}`,
+      );
       ws.close(1008, "Unknown call");
       return null;
     }
@@ -321,7 +342,12 @@ export class MediaStreamHandler {
           this.emitTalkEvent(session, {
             type: "transcript.delta",
             turnId: this.ensureActiveTurn(session),
-            payload: { callId: callSid, streamSid, text: partial, role: "user" },
+            payload: {
+              callId: callSid,
+              streamSid,
+              text: partial,
+              role: "user",
+            },
           });
         }
         this.config.onPartialTranscript?.(callSid, partial);
@@ -340,7 +366,12 @@ export class MediaStreamHandler {
             type: "transcript.done",
             turnId,
             final: true,
-            payload: { callId: callSid, streamSid, text: transcript, role: "user" },
+            payload: {
+              callId: callSid,
+              streamSid,
+              text: transcript,
+              role: "user",
+            },
           });
         }
         this.config.onTranscript?.(callSid, transcript);
@@ -353,7 +384,10 @@ export class MediaStreamHandler {
         this.config.onSpeechStart?.(callSid);
       },
       onError: (error) => {
-        console.warn("[MediaStream] Transcription session error:", error.message);
+        console.warn(
+          "[MediaStream] Transcription session error:",
+          error.message,
+        );
         const session = this.sessions.get(streamSid);
         if (session) {
           this.emitTalkEvent(session, {
@@ -377,14 +411,20 @@ export class MediaStreamHandler {
     this.config.onConnect?.(callSid, streamSid);
     this.emitTalkEvent(session, {
       type: "session.started",
-      payload: { callId: callSid, streamSid, provider: this.config.transcriptionProvider.id },
+      payload: {
+        callId: callSid,
+        streamSid,
+        provider: this.config.transcriptionProvider.id,
+      },
     });
     void this.connectTranscriptionAndNotify(session);
 
     return session;
   }
 
-  private async connectTranscriptionAndNotify(session: StreamSession): Promise<void> {
+  private async connectTranscriptionAndNotify(
+    session: StreamSession,
+  ): Promise<void> {
     try {
       await session.sttSession.connect();
     } catch (error) {
@@ -465,18 +505,24 @@ export class MediaStreamHandler {
   }
 
   private getCurrentConnectionCount(): number {
-    return this.wss ? this.wss.clients.size + this.inflightUpgrades : this.inflightUpgrades;
+    return this.wss
+      ? this.wss.clients.size + this.inflightUpgrades
+      : this.inflightUpgrades;
   }
 
   private registerPendingConnection(ws: WebSocket, ip: string): boolean {
     if (this.pendingConnections.size >= this.maxPendingConnections) {
-      console.warn("[MediaStream] Rejecting connection: pending connection limit reached");
+      console.warn(
+        "[MediaStream] Rejecting connection: pending connection limit reached",
+      );
       return false;
     }
 
     const pendingForIp = this.pendingByIp.get(ip) ?? 0;
     if (pendingForIp >= this.maxPendingConnectionsPerIp) {
-      console.warn(`[MediaStream] Rejecting connection: pending per-IP limit reached (${ip})`);
+      console.warn(
+        `[MediaStream] Rejecting connection: pending per-IP limit reached (${ip})`,
+      );
       return false;
     }
 
@@ -513,8 +559,13 @@ export class MediaStreamHandler {
     this.pendingByIp.set(pending.ip, current - 1);
   }
 
-  private rejectUpgrade(socket: Duplex, statusCode: 429 | 503, message: string): void {
-    const statusText = statusCode === 429 ? "Too Many Requests" : "Service Unavailable";
+  private rejectUpgrade(
+    socket: Duplex,
+    statusCode: 429 | 503,
+    message: string,
+  ): void {
+    const statusText =
+      statusCode === 429 ? "Too Many Requests" : "Service Unavailable";
     const body = `${message}\n`;
     socket.write(
       `HTTP/1.1 ${statusCode} ${statusText}\r\n` +
@@ -614,7 +665,11 @@ export class MediaStreamHandler {
       this.emitTalkEvent(session, {
         type: "output.audio.delta",
         turnId: this.ensureActiveTurn(session),
-        payload: { callId: session.callId, streamSid, bytes: muLawAudio.byteLength },
+        payload: {
+          callId: session.callId,
+          streamSid,
+          bytes: muLawAudio.byteLength,
+        },
       });
     }
     return this.sendToStream(streamSid, {
@@ -646,7 +701,10 @@ export class MediaStreamHandler {
    * Queue a TTS operation for sequential playback.
    * Only one TTS operation plays at a time per stream to prevent overlap.
    */
-  async queueTts(streamSid: string, playFn: (signal: AbortSignal) => Promise<void>): Promise<void> {
+  async queueTts(
+    streamSid: string,
+    playFn: (signal: AbortSignal) => Promise<void>,
+  ): Promise<void> {
     const queue = this.getTtsQueue(streamSid);
     let resolveEntry: () => void;
     let rejectEntry: (error: unknown) => void;
@@ -682,7 +740,11 @@ export class MediaStreamHandler {
         payload: { callId: session.callId, streamSid, reason: _reason },
       });
       if (cancelled.ok) {
-        this.config.onTalkEvent?.(session.callId, session.streamSid, cancelled.event);
+        this.config.onTalkEvent?.(
+          session.callId,
+          session.streamSid,
+          cancelled.event,
+        );
       }
     }
     this.clearAudio(streamSid);
@@ -692,7 +754,9 @@ export class MediaStreamHandler {
    * Get active session by call ID.
    */
   getSessionByCallId(callId: string): StreamSession | undefined {
-    return [...this.sessions.values()].find((session) => session.callId === callId);
+    return [...this.sessions.values()].find(
+      (session) => session.callId === callId,
+    );
   }
 
   /**
@@ -764,7 +828,11 @@ export class MediaStreamHandler {
               payload: { callId: session.callId, streamSid },
             });
             if (ended.ok) {
-              this.config.onTalkEvent?.(session.callId, session.streamSid, ended.event);
+              this.config.onTalkEvent?.(
+                session.callId,
+                session.streamSid,
+                ended.event,
+              );
             }
           }
         }
@@ -784,7 +852,10 @@ export class MediaStreamHandler {
     }
   }
 
-  private createTalkEvents(callId: string, streamSid: string): TalkSessionController {
+  private createTalkEvents(
+    callId: string,
+    streamSid: string,
+  ): TalkSessionController {
     return createTalkSessionController(
       {
         sessionId: `voice-call:${callId}:${streamSid}`,

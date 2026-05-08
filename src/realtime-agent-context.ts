@@ -29,14 +29,19 @@ function readAgentEntries(cfg: CoreConfig): AgentEntryLike[] {
     : [];
 }
 
-function resolveAgentSystemPromptOverride(cfg: CoreConfig, agentId: string): string | undefined {
+function resolveAgentSystemPromptOverride(
+  cfg: CoreConfig,
+  agentId: string,
+): string | undefined {
   const entries = readAgentEntries(cfg);
-  const entry = entries.find((candidate) => normalizeString(candidate.id) === agentId);
+  const entry = entries.find(
+    (candidate) => normalizeString(candidate.id) === agentId,
+  );
   return (
     normalizeString(entry?.systemPromptOverride) ??
     normalizeString(
-      (cfg as { agents?: { defaults?: { systemPromptOverride?: unknown } } }).agents?.defaults
-        ?.systemPromptOverride,
+      (cfg as { agents?: { defaults?: { systemPromptOverride?: unknown } } })
+        .agents?.defaults?.systemPromptOverride,
     )
   );
 }
@@ -130,10 +135,18 @@ export async function buildRealtimeVoiceInstructions(params: {
       agentId,
     ) as VoiceIdentityLike | undefined;
     const identityLines = [
-      normalizeString(identity?.name) ? `- Name: ${normalizeString(identity?.name)}` : undefined,
-      normalizeString(identity?.emoji) ? `- Emoji: ${normalizeString(identity?.emoji)}` : undefined,
-      normalizeString(identity?.vibe) ? `- Vibe: ${normalizeString(identity?.vibe)}` : undefined,
-      normalizeString(identity?.theme) ? `- Theme: ${normalizeString(identity?.theme)}` : undefined,
+      normalizeString(identity?.name)
+        ? `- Name: ${normalizeString(identity?.name)}`
+        : undefined,
+      normalizeString(identity?.emoji)
+        ? `- Emoji: ${normalizeString(identity?.emoji)}`
+        : undefined,
+      normalizeString(identity?.vibe)
+        ? `- Vibe: ${normalizeString(identity?.vibe)}`
+        : undefined,
+      normalizeString(identity?.theme)
+        ? `- Theme: ${normalizeString(identity?.theme)}`
+        : undefined,
       normalizeString(identity?.creature)
         ? `- Creature/persona: ${normalizeString(identity?.creature)}`
         : undefined,
@@ -144,7 +157,10 @@ export async function buildRealtimeVoiceInstructions(params: {
   }
 
   if (contextConfig.includeSystemPrompt) {
-    const systemPrompt = resolveAgentSystemPromptOverride(params.coreConfig, agentId);
+    const systemPrompt = resolveAgentSystemPromptOverride(
+      params.coreConfig,
+      agentId,
+    );
     if (systemPrompt) {
       capsule.push(`Configured system prompt override:\n${systemPrompt}`);
     }

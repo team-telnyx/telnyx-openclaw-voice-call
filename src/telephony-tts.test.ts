@@ -24,7 +24,9 @@ function requireMergedTtsConfig(mergedConfig: CoreConfig | undefined) {
   return tts as Record<string, unknown>;
 }
 
-function requireOpenAIProviderConfig(tts: Record<string, unknown>): Record<string, unknown> {
+function requireOpenAIProviderConfig(
+  tts: Record<string, unknown>,
+): Record<string, unknown> {
   const providers =
     tts.providers && typeof tts.providers === "object"
       ? (tts.providers as Record<string, unknown>)
@@ -36,7 +38,9 @@ function requireOpenAIProviderConfig(tts: Record<string, unknown>): Record<strin
   return openai as Record<string, unknown>;
 }
 
-async function mergeOverride(override: unknown): Promise<Record<string, unknown>> {
+async function mergeOverride(
+  override: unknown,
+): Promise<Record<string, unknown>> {
   let mergedConfig: CoreConfig | undefined;
   const provider = createTelephonyTtsProvider({
     coreConfig: createCoreConfig(),
@@ -74,22 +78,30 @@ describe("createTelephonyTtsProvider deepMerge hardening", () => {
 
   it("blocks top-level __proto__ keys", async () => {
     const tts = await mergeOverride(
-      JSON.parse('{"__proto__":{"polluted":"top"},"providers":{"openai":{"voice":"coral"}}}'),
+      JSON.parse(
+        '{"__proto__":{"polluted":"top"},"providers":{"openai":{"voice":"coral"}}}',
+      ),
     );
     const openai = requireOpenAIProviderConfig(tts);
 
-    expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
+    expect(
+      (Object.prototype as Record<string, unknown>).polluted,
+    ).toBeUndefined();
     expect(tts.polluted).toBeUndefined();
     expect(openai.voice).toBe("coral");
   });
 
   it("blocks nested __proto__ keys", async () => {
     const tts = await mergeOverride(
-      JSON.parse('{"providers":{"openai":{"model":"safe","__proto__":{"polluted":"nested"}}}}'),
+      JSON.parse(
+        '{"providers":{"openai":{"model":"safe","__proto__":{"polluted":"nested"}}}}',
+      ),
     );
     const openai = requireOpenAIProviderConfig(tts);
 
-    expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
+    expect(
+      (Object.prototype as Record<string, unknown>).polluted,
+    ).toBeUndefined();
     expect(openai.polluted).toBeUndefined();
     expect(openai.model).toBe("safe");
   });
@@ -166,7 +178,9 @@ describe("createTelephonyTtsProvider deepMerge hardening", () => {
 
   it("exposes configured timeoutMs as synthesisTimeoutMs", () => {
     const provider = createTelephonyTtsProvider({
-      coreConfig: { messages: { tts: { provider: "openai", timeoutMs: 15000 } } },
+      coreConfig: {
+        messages: { tts: { provider: "openai", timeoutMs: 15000 } },
+      },
       runtime: {
         textToSpeechTelephony: async () => ({
           success: true,

@@ -57,7 +57,9 @@ export class TelnyxProvider implements VoiceCallProvider {
   private readonly options: TelnyxProviderOptions;
   private readonly baseUrl = "https://api.telnyx.com/v2";
   private readonly apiHost = "api.telnyx.com";
-  private realtimeStreamUrlFactory: ((input: StartRealtimeStreamInput) => string) | undefined;
+  private realtimeStreamUrlFactory:
+    | ((input: StartRealtimeStreamInput) => string)
+    | undefined;
 
   constructor(config: TelnyxConfig, options: TelnyxProviderOptions = {}) {
     if (!config.apiKey) {
@@ -140,12 +142,17 @@ export class TelnyxProvider implements VoiceCallProvider {
   /**
    * Convert Telnyx event to normalized event format.
    */
-  private normalizeEvent(data: TelnyxEvent, dedupeKey?: string): NormalizedEvent | null {
+  private normalizeEvent(
+    data: TelnyxEvent,
+    dedupeKey?: string,
+  ): NormalizedEvent | null {
     // Decode client_state from Base64 (we encode it in initiateCall)
     let callId = "";
     if (data.payload?.client_state) {
       try {
-        callId = Buffer.from(data.payload.client_state, "base64").toString("utf8");
+        callId = Buffer.from(data.payload.client_state, "base64").toString(
+          "utf8",
+        );
       } catch {
         // Fallback if not valid Base64
         callId = data.payload.client_state;
@@ -191,9 +198,16 @@ export class TelnyxProvider implements VoiceCallProvider {
           ...baseEvent,
           type: "call.speech",
           transcript:
-            data.payload?.transcription_data?.transcript ?? data.payload?.transcription ?? "",
-          isFinal: data.payload?.transcription_data?.is_final ?? data.payload?.is_final ?? true,
-          confidence: data.payload?.transcription_data?.confidence ?? data.payload?.confidence,
+            data.payload?.transcription_data?.transcript ??
+            data.payload?.transcription ??
+            "",
+          isFinal:
+            data.payload?.transcription_data?.is_final ??
+            data.payload?.is_final ??
+            true,
+          confidence:
+            data.payload?.transcription_data?.confidence ??
+            data.payload?.confidence,
         };
 
       case "call.hangup":
@@ -304,7 +318,9 @@ export class TelnyxProvider implements VoiceCallProvider {
     });
   }
 
-  setRealtimeStreamUrlFactory(factory: (input: StartRealtimeStreamInput) => string): void {
+  setRealtimeStreamUrlFactory(
+    factory: (input: StartRealtimeStreamInput) => string,
+  ): void {
     this.realtimeStreamUrlFactory = factory;
   }
 
@@ -316,26 +332,32 @@ export class TelnyxProvider implements VoiceCallProvider {
       throw new Error("Telnyx realtime stream URL factory is not configured");
     }
     const streamUrl = this.realtimeStreamUrlFactory(input);
-    await this.apiRequest(`/calls/${input.providerCallId}/actions/streaming_start`, {
-      command_id: `openclaw-realtime-stream-${input.callId}`,
-      stream_url: streamUrl,
-      stream_track: "both_tracks",
-      stream_codec: "PCMU",
-      stream_bidirectional_mode: "rtp",
-      stream_bidirectional_codec: "PCMU",
-      stream_bidirectional_sampling_rate: 8000,
-      stream_bidirectional_target_legs: "both",
-    });
+    await this.apiRequest(
+      `/calls/${input.providerCallId}/actions/streaming_start`,
+      {
+        command_id: `openclaw-realtime-stream-${input.callId}`,
+        stream_url: streamUrl,
+        stream_track: "both_tracks",
+        stream_codec: "PCMU",
+        stream_bidirectional_mode: "rtp",
+        stream_bidirectional_codec: "PCMU",
+        stream_bidirectional_sampling_rate: 8000,
+        stream_bidirectional_target_legs: "both",
+      },
+    );
   }
 
   /**
    * Start transcription (STT) via Telnyx.
    */
   async startListening(input: StartListeningInput): Promise<void> {
-    await this.apiRequest(`/calls/${input.providerCallId}/actions/transcription_start`, {
-      command_id: crypto.randomUUID(),
-      language: input.language || "en",
-    });
+    await this.apiRequest(
+      `/calls/${input.providerCallId}/actions/transcription_start`,
+      {
+        command_id: crypto.randomUUID(),
+        language: input.language || "en",
+      },
+    );
   }
 
   /**
@@ -351,7 +373,9 @@ export class TelnyxProvider implements VoiceCallProvider {
 
   async getCallStatus(input: GetCallStatusInput): Promise<GetCallStatusResult> {
     try {
-      const data = await guardedJsonApiRequest<{ data?: { state?: string; is_alive?: boolean } }>({
+      const data = await guardedJsonApiRequest<{
+        data?: { state?: string; is_alive?: boolean };
+      }>({
         url: `${this.baseUrl}/calls/${input.providerCallId}`,
         method: "GET",
         headers: {

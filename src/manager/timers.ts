@@ -4,7 +4,11 @@ import { persistCallRecord } from "./store.js";
 
 type TimerContext = Pick<
   CallManagerContext,
-  "activeCalls" | "maxDurationTimers" | "config" | "storePath" | "transcriptWaiters"
+  | "activeCalls"
+  | "maxDurationTimers"
+  | "config"
+  | "storePath"
+  | "transcriptWaiters"
 >;
 type MaxDurationTimerContext = Pick<
   TimerContext,
@@ -31,7 +35,8 @@ export function startMaxDurationTimer(params: {
 }): void {
   clearMaxDurationTimer(params.ctx, params.callId);
 
-  const maxDurationMs = params.timeoutMs ?? params.ctx.config.maxDurationSeconds * 1000;
+  const maxDurationMs =
+    params.timeoutMs ?? params.ctx.config.maxDurationSeconds * 1000;
   console.log(
     `[voice-call] Starting max duration timer (${Math.ceil(maxDurationMs / 1000)}s) for call ${params.callId}`,
   );
@@ -52,7 +57,10 @@ export function startMaxDurationTimer(params: {
   params.ctx.maxDurationTimers.set(params.callId, timer);
 }
 
-export function clearTranscriptWaiter(ctx: TranscriptWaiterContext, callId: CallId): void {
+export function clearTranscriptWaiter(
+  ctx: TranscriptWaiterContext,
+  callId: CallId,
+): void {
   const waiter = ctx.transcriptWaiters.get(callId);
   if (!waiter) {
     return;
@@ -105,7 +113,9 @@ export function waitForFinalTranscript(
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       ctx.transcriptWaiters.delete(callId);
-      reject(new Error(`Timed out waiting for transcript after ${timeoutMs}ms`));
+      reject(
+        new Error(`Timed out waiting for transcript after ${timeoutMs}ms`),
+      );
     }, timeoutMs);
 
     ctx.transcriptWaiters.set(callId, { resolve, reject, timeout, turnToken });

@@ -38,7 +38,10 @@ export function finalizeCall(params: {
   persistCallRecord(ctx.storePath, call);
 
   if (ctx.maxDurationTimers) {
-    clearMaxDurationTimer({ maxDurationTimers: ctx.maxDurationTimers }, call.callId);
+    clearMaxDurationTimer(
+      { maxDurationTimers: ctx.maxDurationTimers },
+      call.callId,
+    );
   }
   if (ctx.transcriptWaiters) {
     rejectTranscriptWaiter(

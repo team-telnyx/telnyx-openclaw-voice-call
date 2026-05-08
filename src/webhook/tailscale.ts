@@ -105,7 +105,9 @@ export async function cleanupTailscaleExposureRoute(opts: {
   await runTailscaleCommand([opts.mode, "off", opts.path]);
 }
 
-export async function setupTailscaleExposure(config: VoiceCallConfig): Promise<string | null> {
+export async function setupTailscaleExposure(
+  config: VoiceCallConfig,
+): Promise<string | null> {
   if (config.tailscale.mode === "off") {
     return null;
   }
@@ -119,7 +121,9 @@ export async function setupTailscaleExposure(config: VoiceCallConfig): Promise<s
   });
 }
 
-export async function cleanupTailscaleExposure(config: VoiceCallConfig): Promise<void> {
+export async function cleanupTailscaleExposure(
+  config: VoiceCallConfig,
+): Promise<void> {
   if (config.tailscale.mode === "off") {
     return;
   }

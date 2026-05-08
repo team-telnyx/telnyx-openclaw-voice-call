@@ -47,7 +47,11 @@ describe("voice-call manager timers", () => {
 
     await vi.advanceTimersByTimeAsync(5_000);
 
-    expect(call).toEqual({ id: "call-1", state: "active", endReason: "timeout" });
+    expect(call).toEqual({
+      id: "call-1",
+      state: "active",
+      endReason: "timeout",
+    });
     expect(persistCallRecordMock).toHaveBeenCalledWith("/tmp/voice-call", call);
     expect(onTimeout).toHaveBeenCalledWith("call-1");
     expect(ctx.maxDurationTimers.has("call-1")).toBe(false);
@@ -89,17 +93,26 @@ describe("voice-call manager timers", () => {
     };
 
     const pending = waitForFinalTranscript(ctx as never, "call-1", "turn-1");
-    expect(resolveTranscriptWaiter(ctx as never, "call-1", "ignored", "turn-2")).toBe(false);
-    expect(resolveTranscriptWaiter(ctx as never, "call-1", "final transcript", "turn-1")).toBe(
-      true,
-    );
+    expect(
+      resolveTranscriptWaiter(ctx as never, "call-1", "ignored", "turn-2"),
+    ).toBe(false);
+    expect(
+      resolveTranscriptWaiter(
+        ctx as never,
+        "call-1",
+        "final transcript",
+        "turn-1",
+      ),
+    ).toBe(true);
     await expect(pending).resolves.toBe("final transcript");
 
     const another = waitForFinalTranscript(ctx as never, "call-2");
     rejectTranscriptWaiter(ctx as never, "call-2", "provider failed");
     await expect(another).rejects.toThrow("provider failed");
 
-    const timedOut = waitForFinalTranscript(ctx as never, "call-3").catch((error) => error);
+    const timedOut = waitForFinalTranscript(ctx as never, "call-3").catch(
+      (error) => error,
+    );
     await vi.advanceTimersByTimeAsync(1_000);
     await expect(timedOut).resolves.toEqual(
       expect.objectContaining({
@@ -120,9 +133,9 @@ describe("voice-call manager timers", () => {
     };
 
     const pending = waitForFinalTranscript(ctx as never, "call-1");
-    await expect(waitForFinalTranscript(ctx as never, "call-1")).rejects.toThrow(
-      "Already waiting for transcript",
-    );
+    await expect(
+      waitForFinalTranscript(ctx as never, "call-1"),
+    ).rejects.toThrow("Already waiting for transcript");
     rejectTranscriptWaiter(ctx as never, "call-1", "done");
     await expect(pending).rejects.toThrow("done");
   });

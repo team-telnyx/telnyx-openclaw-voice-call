@@ -20,7 +20,10 @@ describe("startStaleCallReaper", () => {
 
     expect(startStaleCallReaper({ manager: manager as never })).toBeNull();
     expect(
-      startStaleCallReaper({ manager: manager as never, staleCallReaperSeconds: 0 }),
+      startStaleCallReaper({
+        manager: manager as never,
+        staleCallReaperSeconds: 0,
+      }),
     ).toBeNull();
   });
 
