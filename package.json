@@ -18,7 +18,7 @@
     "scripts/check-openclaw-sdk.mjs"
   ],
   "engines": {
-    "node": ">=22.14.0"
+    "node": ">=22"
   },
   "scripts": {
     "check:sdk": "node scripts/check-openclaw-sdk.mjs",
@@ -26,6 +26,7 @@
     "prepack": "npm run build",
     "pretest": "npm run check:sdk",
     "test": "vitest run",
+    "pretest:smoke": "npm run check:sdk",
     "test:smoke": "vitest run src/providers/mock.test.ts src/config.test.ts src/cli.test.ts",
     "lint": "npm run check:sdk && tsc --noEmit",
     "typecheck": "npm run lint",

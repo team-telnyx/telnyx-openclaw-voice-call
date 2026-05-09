@@ -60,6 +60,18 @@ npm install --no-save /path/to/openclaw # until SDK exports are released
 npm run build
 ```
 
+Then add the plugin load path to your `openclaw.json` so the standalone copy takes priority over any bundled version:
+
+```json
+{
+  "plugins": {
+    "load": {
+      "paths": ["~/.openclaw/extensions/voice-call"]
+    }
+  }
+}
+```
+
 ## Config
 
 Put under `plugins.entries.voice-call.config`:

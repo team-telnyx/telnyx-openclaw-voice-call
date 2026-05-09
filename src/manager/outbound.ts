@@ -213,9 +213,15 @@ export async function initiateCall(
     if (mode === "notify" && initialMessage) {
       const pollyVoice = mapVoiceToPolly(resolvePreferredTtsVoice(ctx.config));
       inlineTwiml = generateNotifyTwiml(initialMessage, pollyVoice);
-      console.log(
-        `[voice-call] Using inline TwiML for notify mode (voice: ${pollyVoice})`,
-      );
+      if (ctx.provider.name === "twilio") {
+        console.log(
+          `[voice-call] Using inline TwiML for notify mode (voice: ${pollyVoice})`,
+        );
+      } else {
+        console.log(
+          `[voice-call] Generated inline notify-message TTS (provider: ${ctx.provider.name}, voice: ${pollyVoice})`,
+        );
+      }
     } else if (dtmfSequence) {
       preConnectTwiml = generateDtmfRedirectTwiml(dtmfSequence, ctx.webhookUrl);
       console.log(
