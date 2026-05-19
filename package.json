@@ -18,7 +18,7 @@
     "scripts/check-openclaw-sdk.mjs"
   ],
   "engines": {
-    "node": ">=22.14.0"
+    "node": ">=22"
   },
   "scripts": {
     "check:sdk": "node scripts/check-openclaw-sdk.mjs",
