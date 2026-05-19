@@ -13,20 +13,19 @@ import type { VoiceCallConfig } from "./config.js";
 import {
   resolveVoiceCallEffectiveConfig,
   resolveVoiceCallSessionKey,
-  resolveTwilioAuthToken,
   resolveVoiceCallConfig,
   validateProviderConfig,
 } from "./config.js";
+import { provision } from "./provisioning.js";
 import type { CoreAgentDeps, CoreConfig } from "./core-bridge.js";
 import { CallManager } from "./manager.js";
 import type { VoiceCallProvider } from "./providers/base.js";
 import type { TelnyxProvider } from "./providers/telnyx.js";
-import type { TwilioProvider } from "./providers/twilio.js";
+
 import { buildRealtimeVoiceInstructions } from "./realtime-agent-context.js";
 import { resolveRealtimeFastContextConsult } from "./realtime-fast-context.js";
 import { resolveVoiceResponseModel } from "./response-model.js";
 import type { TelephonyTtsRuntime } from "./telephony-tts.js";
-import { createTelephonyTtsProvider } from "./telephony-tts.js";
 import { startTunnel, type TunnelResult } from "./tunnel.js";
 import {
   isProviderUnreachableWebhookUrl,
@@ -59,8 +58,7 @@ type Logger = {
 type ResolvedRealtimeProvider = ResolvedRealtimeVoiceProvider;
 
 type TelnyxProviderModule = typeof import("./providers/telnyx.js");
-type TwilioProviderModule = typeof import("./providers/twilio.js");
-type PlivoProviderModule = typeof import("./providers/plivo.js");
+
 type MockProviderModule = typeof import("./providers/mock.js");
 type RealtimeVoiceRuntimeModule = typeof import("./realtime-voice.runtime.js");
 type RealtimeHandlerModule = typeof import("./webhook/realtime-handler.js");
@@ -75,8 +73,7 @@ const REALTIME_VOICE_CONSULT_SYSTEM_PROMPT = [
 ].join(" ");
 
 let telnyxProviderPromise: Promise<TelnyxProviderModule> | undefined;
-let twilioProviderPromise: Promise<TwilioProviderModule> | undefined;
-let plivoProviderPromise: Promise<PlivoProviderModule> | undefined;
+
 let mockProviderPromise: Promise<MockProviderModule> | undefined;
 let realtimeVoiceRuntimePromise:
   | Promise<RealtimeVoiceRuntimeModule>
@@ -88,15 +85,6 @@ function loadTelnyxProvider(): Promise<TelnyxProviderModule> {
   return telnyxProviderPromise;
 }
 
-function loadTwilioProvider(): Promise<TwilioProviderModule> {
-  twilioProviderPromise ??= import("./providers/twilio.js");
-  return twilioProviderPromise;
-}
-
-function loadPlivoProvider(): Promise<PlivoProviderModule> {
-  plivoProviderPromise ??= import("./providers/plivo.js");
-  return plivoProviderPromise;
-}
 
 function loadMockProvider(): Promise<MockProviderModule> {
   mockProviderPromise ??= import("./providers/mock.js");
@@ -219,39 +207,6 @@ async function resolveProvider(
         },
       );
     }
-    case "twilio": {
-      const { TwilioProvider } = await loadTwilioProvider();
-      return new TwilioProvider(
-        {
-          accountSid: config.twilio?.accountSid,
-          authToken: resolveTwilioAuthToken(config),
-        },
-        {
-          allowNgrokFreeTierLoopbackBypass,
-          publicUrl: config.publicUrl,
-          skipVerification: config.skipSignatureVerification,
-          streamPath: config.streaming?.enabled
-            ? config.streaming.streamPath
-            : undefined,
-          webhookSecurity: config.webhookSecurity,
-        },
-      );
-    }
-    case "plivo": {
-      const { PlivoProvider } = await loadPlivoProvider();
-      return new PlivoProvider(
-        {
-          authId: config.plivo?.authId,
-          authToken: config.plivo?.authToken,
-        },
-        {
-          publicUrl: config.publicUrl,
-          skipVerification: config.skipSignatureVerification,
-          ringTimeoutSec: Math.max(1, Math.floor(config.ringTimeoutMs / 1000)),
-          webhookSecurity: config.webhookSecurity,
-        },
-      );
-    }
     case "mock": {
       const { MockProvider } = await loadMockProvider();
       return new MockProvider();
@@ -310,6 +265,41 @@ export async function createVoiceCallRuntime(params: {
     log.warn(
       "[voice-call] SECURITY WARNING: skipSignatureVerification=true disables webhook signature verification (development only). Do not use in production.",
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Auto-provisioning: create CC app + buy phone number when fields are absent
+  // ---------------------------------------------------------------------------
+  if (
+    config.autoProvision &&
+    config.provider === "telnyx" &&
+    config.telnyx?.apiKey &&
+    (!config.telnyx?.connectionId || !config.fromNumber)
+  ) {
+    log.info("[voice-call] autoProvision=true — running Telnyx provisioning");
+
+    // We need a webhook URL to register on the CC app.  At this point the
+    // server hasn't started yet, so we build the local URL from config.
+    // If a publicUrl is already configured, prefer that.
+    const webhookUrl =
+      config.publicUrl ??
+      `http://${config.serve.bind}:${config.serve.port}${config.serve.path}`;
+
+    const provisioned = await provision({
+      apiKey: config.telnyx.apiKey,
+      connectionId: config.telnyx?.connectionId,
+      fromNumber: config.fromNumber,
+      webhookUrl,
+      storePath: config.store,
+      logger: log,
+    });
+
+    // Merge provisioned values back into config
+    config.telnyx = {
+      ...config.telnyx,
+      connectionId: provisioned.connectionId,
+    };
+    config.fromNumber = provisioned.fromNumber as typeof config.fromNumber;
   }
 
   const validation = validateProviderConfig(config);
@@ -487,9 +477,6 @@ export async function createVoiceCallRuntime(params: {
       );
     }
 
-    if (publicUrl && provider.name === "twilio") {
-      (provider as TwilioProvider).setPublicUrl(publicUrl);
-    }
     if (publicUrl && realtimeProvider) {
       webhookServer.getRealtimeHandler()?.setPublicUrl(publicUrl);
     }
@@ -502,36 +489,6 @@ export async function createVoiceCallRuntime(params: {
             providerCallId: input.providerCallId,
           }),
         );
-      }
-    }
-
-    if (provider.name === "twilio" && config.streaming?.enabled) {
-      const twilioProvider = provider as TwilioProvider;
-      if (ttsRuntime?.textToSpeechTelephony) {
-        try {
-          const ttsProvider = createTelephonyTtsProvider({
-            coreConfig,
-            ttsOverride: config.tts,
-            runtime: ttsRuntime,
-            logger: log,
-          });
-          twilioProvider.setTTSProvider(ttsProvider);
-          log.info("[voice-call] Telephony TTS provider configured");
-        } catch (err) {
-          log.warn(
-            `[voice-call] Failed to initialize telephony TTS: ${formatErrorMessage(err)}`,
-          );
-        }
-      } else {
-        log.warn(
-          "[voice-call] Telephony TTS unavailable; streaming TTS disabled",
-        );
-      }
-
-      const mediaHandler = webhookServer.getMediaStreamHandler();
-      if (mediaHandler) {
-        twilioProvider.setMediaStreamHandler(mediaHandler);
-        log.info("[voice-call] Media stream handler wired to provider");
       }
     }
 

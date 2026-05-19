@@ -1,12 +1,12 @@
-# @openclaw/voice-call
+# @ocplatform/voice-call
 
-Official Voice Call plugin for **OpenClaw**.
+**Telnyx Voice AI plugin for OpenClaw.**
+
+Enable this plugin and your OpenClaw agent becomes a Telnyx Voice AI phone number — inbound and outbound calls, realtime voice streaming, and full Call Control v2 integration out of the box.
 
 Providers:
 
-- **Twilio** (Programmable Voice + Media Streams)
-- **Telnyx** (Call Control v2)
-- **Plivo** (Voice API + XML transfer + GetInput speech)
+- **Telnyx** (Call Control v2) — production voice AI
 - **Mock** (dev/no network)
 
 Docs: `https://docs.openclaw.ai/plugins/voice-call`
@@ -60,7 +60,7 @@ npm install --no-save /path/to/openclaw # until SDK exports are released
 npm run build
 ```
 
-Then add the plugin load path to your `openclaw.json` so the standalone copy takes priority over any bundled version:
+Then add the plugin load path to your OpenClaw config so the standalone copy takes priority over any bundled version:
 
 ```json
 {
@@ -78,15 +78,10 @@ Put under `plugins.entries.voice-call.config`:
 
 ```json5
 {
-  provider: "telnyx", // or "twilio" | "plivo" | "mock"
+  provider: "telnyx", // or "mock" for dev/no-network
   fromNumber: "+15550001234",
   toNumber: "+15550005678",
   sessionScope: "per-phone", // or "per-call"
-
-  twilio: {
-    accountSid: "ACxxxxxxxx",
-    authToken: "your_token",
-  },
 
   telnyx: {
     apiKey: "KEYxxxx",
@@ -94,11 +89,6 @@ Put under `plugins.entries.voice-call.config`:
     // Telnyx webhook public key from the Telnyx Mission Control Portal
     // (Base64 string; can also be set via TELNYX_PUBLIC_KEY).
     publicKey: "...",
-  },
-
-  plivo: {
-    authId: "MAxxxxxxxxxxxxxxxxxxxx",
-    authToken: "your_token",
   },
 
   // Webhook server
@@ -138,14 +128,19 @@ Put under `plugins.entries.voice-call.config`:
 }
 ```
 
+Environment variables:
+
+- `TELNYX_API_KEY` — Telnyx API key
+- `TELNYX_CONNECTION_ID` — Telnyx Call Control connection ID
+- `TELNYX_PUBLIC_KEY` — Telnyx webhook signature public key (Base64)
+
 Notes:
 
-- Telnyx is the recommended production provider for Voice Call. Twilio and Plivo remain supported for existing installs.
-- Twilio/Telnyx/Plivo require a **publicly reachable** webhook URL.
+- Telnyx requires a **publicly reachable** webhook URL.
 - `mock` is a local dev provider (no network calls).
-- For safe local validation, set `provider: "mock"` and avoid configuring Telnyx/Twilio/Plivo credentials.
+- For safe local validation, set `provider: "mock"` and skip Telnyx credentials.
 - Telnyx requires `telnyx.publicKey` (or `TELNYX_PUBLIC_KEY`) unless `skipSignatureVerification` is true.
-- If older configs still use `provider: "log"`, `twilio.from`, or legacy `streaming.*` OpenAI keys, run `openclaw doctor --fix` to rewrite them.
+- If older configs reference `provider: "log"` or legacy `streaming.*` OpenAI keys, run `openclaw doctor --fix` to rewrite them.
 - advanced webhook, streaming, and tunnel notes: `https://docs.openclaw.ai/plugins/voice-call`
 - `responseModel` is optional. When unset, voice responses use the runtime default model.
 - `sessionScope` defaults to `per-phone`, preserving caller memory across calls. Use `per-call` for reception, booking, IVR, and bridge flows where each carrier call should start fresh.
@@ -168,7 +163,7 @@ openclaw voicecall call --to "+15555550123" --message "Hello from OpenClaw"
 openclaw voicecall continue --call-id <id> --message "Any questions?"
 openclaw voicecall speak --call-id <id> --message "One moment"
 openclaw voicecall end --call-id <id>
-openclaw voicecall status --json
+ocplatform voicecall status --json
 openclaw voicecall status --call-id <id>
 openclaw voicecall tail
 openclaw voicecall expose --mode funnel
@@ -196,14 +191,10 @@ Actions:
 
 ## Notes
 
-- Uses webhook signature verification for Twilio/Telnyx/Plivo.
-- Adds replay protection for Twilio and Plivo webhooks (valid duplicate callbacks are ignored safely).
-- Twilio speech turns include a per-turn token so stale/replayed callbacks cannot complete a newer turn.
+- Uses Telnyx webhook signature verification (Ed25519). Set `telnyx.publicKey` or `TELNYX_PUBLIC_KEY`.
 - `responseModel` / `responseSystemPrompt` control AI auto-responses.
 - Voice-call auto-responses enforce a spoken JSON contract (`{"spoken":"..."}`) and filter reasoning/meta output before playback.
-- While a Twilio stream is active, playback does not fall back to TwiML `<Say>`; stream-TTS failures fail the playback request.
-- Outbound conversation calls suppress barge-in only while the initial greeting is actively speaking, then re-enable normal interruption.
-- Twilio stream disconnect auto-end uses a short grace window so quick reconnects do not end the call.
-- Realtime voice supports Twilio `<Connect><Stream>` and Telnyx Call Control `streaming_start` media streams. Telnyx realtime uses bidirectional PCMU/RTP streaming into the same realtime voice bridge.
+- Telnyx realtime uses bidirectional PCMU/RTP streaming into the realtime voice bridge via Telnyx Call Control `streaming_start`.
 - Realtime provider selection is generic. Configure `streaming.provider` / `realtime.provider` and put provider-owned options under `providers.<id>`.
-- Runtime fallback still accepts the old voice-call keys for now, but migration is a doctor step and the compat shim is scheduled to go away in a future release.
+- Outbound conversation calls suppress barge-in only while the initial greeting is actively speaking, then re-enable normal interruption.
+- Runtime fallback still accepts old voice-call keys for now, but migration is a doctor step and the compat shim is scheduled to go away in a future release.

@@ -1,11 +1,13 @@
 ---
 name: telnyx-openclaw-voice-call
-description: Telnyx-first OpenClaw Voice Call plugin for realtime voice AI agents.
+description: Telnyx Voice AI plugin for OpenClaw — enables realtime voice agents via Telnyx Call Control v2.
 ---
 
 # Telnyx OpenClaw Voice Call
 
-This repository packages the OpenClaw `voice-call` extension as a standalone Telnyx-first plugin.
+This plugin packages the OpenClaw `voice-call` extension as a purpose-built Telnyx Voice AI plugin. Enable it and your OCPlatform agent becomes a Telnyx Voice AI phone number.
+
+**Provider support:** Telnyx (production) + Mock (dev/no-network).
 
 ## Current status
 
@@ -50,4 +52,4 @@ openclaw plugins install .
 
 Requires `dist/` to exist (run `npm run build` first).
 
-Configure the plugin under `plugins.entries.voice-call.config` with Telnyx Call Control credentials, a public webhook URL, and optional realtime voice provider settings.
+Configure the plugin under `plugins.entries.voice-call.config` with your Telnyx Call Control credentials (`apiKey`, `connectionId`, `publicKey`), a public webhook URL, and optional realtime voice provider settings.

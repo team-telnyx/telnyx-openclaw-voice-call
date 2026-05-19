@@ -19,8 +19,7 @@ import type {
 } from "./types.js";
 
 export class FakeProvider implements VoiceCallProvider {
-  readonly name: "plivo" | "twilio" | "telnyx";
-  twilioStreamConnectEnabled = true;
+  readonly name: "telnyx" | "mock";
   readonly playTtsCalls: PlayTtsInput[] = [];
   readonly hangupCalls: HangupCallInput[] = [];
   readonly startListeningCalls: StartListeningInput[] = [];
@@ -30,7 +29,7 @@ export class FakeProvider implements VoiceCallProvider {
     isTerminal: false,
   };
 
-  constructor(name: "plivo" | "twilio" | "telnyx" = "plivo") {
+  constructor(name: "telnyx" | "mock" = "telnyx") {
     this.name = name;
   }
 
@@ -68,9 +67,6 @@ export class FakeProvider implements VoiceCallProvider {
     return this.getCallStatusResult;
   }
 
-  isConversationStreamConnectEnabled(): boolean {
-    return this.name === "twilio" && this.twilioStreamConnectEnabled;
-  }
 }
 
 export function createTestStorePath(): string {
@@ -86,7 +82,7 @@ export async function createManagerHarness(
 }> {
   const config = VoiceCallConfigSchema.parse({
     enabled: true,
-    provider: "plivo",
+    provider: "telnyx",
     fromNumber: "+15550000000",
     ...configOverrides,
   });
@@ -125,7 +121,7 @@ export function makePersistedCall(
   return {
     callId: `call-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     providerCallId: `prov-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    provider: "plivo",
+    provider: "telnyx",
     direction: "outbound",
     state: "answered",
     from: "+15550000000",

@@ -12,7 +12,7 @@ for (let i = 0; i < MULAW_LINEAR_SAMPLES.length; i += 1) {
   MULAW_LINEAR_SAMPLES[i] = decodeMulawSample(i);
 }
 
-type RealtimeTwilioAudioQueueItem =
+type RealtimeAudioQueueItem =
   | {
       chunk: Buffer;
       durationMs: number;
@@ -23,10 +23,10 @@ type RealtimeTwilioAudioQueueItem =
       type: "mark";
     };
 
-export type RealtimeTwilioAudioPacerSendJson = (message: unknown) => boolean;
+export type RealtimeAudioPacerSendJson = (message: unknown) => boolean;
 
-export class RealtimeTwilioAudioPacer {
-  private queue: RealtimeTwilioAudioQueueItem[] = [];
+export class RealtimeAudioPacer {
+  private queue: RealtimeAudioQueueItem[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
   private queuedAudioBytes = 0;
   private closed = false;
@@ -35,8 +35,7 @@ export class RealtimeTwilioAudioPacer {
     private readonly params: {
       maxQueuedAudioBytes?: number;
       onBackpressure?: () => void;
-      provider?: "telnyx" | "twilio";
-      sendJson: RealtimeTwilioAudioPacerSendJson;
+      sendJson: RealtimeAudioPacerSendJson;
       streamSid: string;
     },
   ) {}
@@ -88,12 +87,7 @@ export class RealtimeTwilioAudioPacer {
     this.clearTimer();
     this.queue = [];
     this.queuedAudioBytes = 0;
-    if (this.params.provider !== "telnyx") {
-      this.params.sendJson({
-        event: "clear",
-        streamSid: this.params.streamSid,
-      });
-    }
+
     return clearedAudioBytes;
   }
 
@@ -140,28 +134,13 @@ export class RealtimeTwilioAudioPacer {
         0,
         this.queuedAudioBytes - item.chunk.length,
       );
-      sent = this.params.sendJson(
-        this.params.provider === "telnyx"
-          ? {
-              event: "media",
-              media: { payload: item.chunk.toString("base64") },
-            }
-          : {
-              event: "media",
-              streamSid: this.params.streamSid,
-              media: { payload: item.chunk.toString("base64") },
-            },
-      );
+      sent = this.params.sendJson({
+        event: "media",
+        media: { payload: item.chunk.toString("base64") },
+      });
       delayMs = item.durationMs || TELEPHONY_CHUNK_MS;
     } else {
-      sent =
-        this.params.provider === "telnyx"
-          ? true
-          : this.params.sendJson({
-              event: "mark",
-              streamSid: this.params.streamSid,
-              mark: { name: item.name },
-            });
+      sent = true; // Telnyx does not use mark events
     }
 
     if (!sent) {

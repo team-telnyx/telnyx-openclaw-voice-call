@@ -1,10 +1,4 @@
 import { REALTIME_VOICE_AGENT_CONSULT_TOOL_POLICIES } from "openclaw/plugin-sdk/realtime-voice";
-import {
-  buildSecretInputSchema,
-  hasConfiguredSecretInput,
-  normalizeResolvedSecretInputString,
-  type SecretInput,
-} from "openclaw/plugin-sdk/secret-input";
 import { z } from "openclaw/plugin-sdk/zod";
 import { TtsConfigSchema } from "../api.js";
 import { deepMergeDefined } from "./deep-merge.js";
@@ -44,8 +38,6 @@ const InboundPolicySchema = z.enum([
 // Provider-Specific Configuration
 // -----------------------------------------------------------------------------
 
-const SecretInputSchema = buildSecretInputSchema();
-
 const TelnyxConfigSchema = z
   .object({
     /** Telnyx API v2 key */
@@ -58,24 +50,7 @@ const TelnyxConfigSchema = z
   .strict();
 export type TelnyxConfig = z.infer<typeof TelnyxConfigSchema>;
 
-const TwilioConfigSchema = z
-  .object({
-    /** Twilio Account SID */
-    accountSid: z.string().min(1).optional(),
-    /** Twilio Auth Token */
-    authToken: SecretInputSchema.optional(),
-  })
-  .strict();
 
-const PlivoConfigSchema = z
-  .object({
-    /** Plivo Auth ID (starts with MA/SA) */
-    authId: z.string().min(1).optional(),
-    /** Plivo Auth Token */
-    authToken: z.string().min(1).optional(),
-  })
-  .strict();
-export type PlivoConfig = z.infer<typeof PlivoConfigSchema>;
 
 export type VoiceCallTtsConfig = z.infer<typeof TtsConfigSchema>;
 
@@ -411,17 +386,11 @@ export const VoiceCallConfigSchema = z
     /** Enable voice call functionality */
     enabled: z.boolean().default(false),
 
-    /** Active provider (telnyx, twilio, plivo, or mock) */
-    provider: z.enum(["telnyx", "twilio", "plivo", "mock"]).optional(),
+    /** Active provider (telnyx or mock) */
+    provider: z.enum(["telnyx", "mock"]).optional(),
 
     /** Telnyx-specific configuration */
     telnyx: TelnyxConfigSchema.optional(),
-
-    /** Twilio-specific configuration */
-    twilio: TwilioConfigSchema.optional(),
-
-    /** Plivo-specific configuration */
-    plivo: PlivoConfigSchema.optional(),
 
     /** Phone number to call from (E.164) */
     fromNumber: E164Schema.optional(),
@@ -493,6 +462,14 @@ export const VoiceCallConfigSchema = z
     /** Skip webhook signature verification (development only, NOT for production) */
     skipSignatureVerification: z.boolean().default(false),
 
+    /**
+     * Auto-provision a Telnyx Call Control Application and phone number when
+     * the plugin is enabled and either `telnyx.connectionId` or `fromNumber`
+     * is missing. The provisioned values are persisted to
+     * `<store>/provisioned.json` so they survive gateway restarts.
+     */
+    autoProvision: z.boolean().default(false),
+
     /** TTS override (deep-merges with core messages.tts) */
     tts: TtsConfigSchema,
 
@@ -518,17 +495,12 @@ export type VoiceCallEffectiveConfigResult = {
   config: VoiceCallConfig;
   numberRouteKey?: string;
 };
-type DeepPartial<T> = T extends SecretInput
-  ? T
-  : T extends Array<infer U>
+type DeepPartial<T> = T extends Array<infer U>
     ? DeepPartial<U>[]
     : T extends object
       ? { [K in keyof T]?: DeepPartial<T[K]> }
       : T;
 export type VoiceCallConfigInput = DeepPartial<VoiceCallConfig>;
-const TWILIO_AUTH_TOKEN_PATH =
-  "plugins.entries.voice-call.config.twilio.authToken";
-
 // -----------------------------------------------------------------------------
 // Configuration Helpers
 // -----------------------------------------------------------------------------
@@ -658,15 +630,6 @@ function sanitizeVoiceCallNumberRoutes(
   );
 }
 
-export function resolveTwilioAuthToken(
-  config: Pick<VoiceCallConfig, "twilio">,
-): string | undefined {
-  return normalizeResolvedSecretInputString({
-    value: config.twilio?.authToken,
-    path: TWILIO_AUTH_TOKEN_PATH,
-  });
-}
-
 export function normalizeVoiceCallConfig(
   config: VoiceCallConfigInput,
 ): VoiceCallConfig {
@@ -676,8 +639,11 @@ export function normalizeVoiceCallConfig(
   const streamingProviders = sanitizeVoiceCallProviderConfigs(
     config.streaming?.providers ?? defaults.streaming.providers,
   );
+  // Telnyx-first: default realtime provider to "telnyx" when using the Telnyx
+  // call provider, unless explicitly overridden.
   const realtimeProvider =
-    config.realtime?.provider ?? defaults.realtime.provider;
+    config.realtime?.provider ??
+    (config.provider === "telnyx" ? "telnyx" : defaults.realtime.provider);
   const realtimeProviders = sanitizeVoiceCallProviderConfigs(
     config.realtime?.providers ?? defaults.realtime.providers,
   );
@@ -738,7 +704,14 @@ export function normalizeVoiceCallConfig(
       agentContext: realtimeAgentContext,
       providers: realtimeProviders,
     },
-    tts: normalizeVoiceCallTtsConfig(defaults.tts, config.tts),
+    // Telnyx-first: when using Telnyx as the call provider and no TTS provider
+    // is explicitly configured, prefer Telnyx TTS for co-located latency.
+    tts: normalizeVoiceCallTtsConfig(
+      config.provider === "telnyx" && !config.tts?.provider
+        ? { ...defaults.tts, provider: "telnyx" }
+        : defaults.tts,
+      config.tts,
+    ),
   };
 }
 
@@ -779,24 +752,6 @@ export function resolveVoiceCallConfig(
       resolved.telnyx.connectionId ?? process.env.TELNYX_CONNECTION_ID;
     resolved.telnyx.publicKey =
       resolved.telnyx.publicKey ?? process.env.TELNYX_PUBLIC_KEY;
-  }
-
-  // Twilio
-  if (resolved.provider === "twilio") {
-    resolved.fromNumber = resolved.fromNumber ?? process.env.TWILIO_FROM_NUMBER;
-    resolved.twilio = resolved.twilio ?? {};
-    resolved.twilio.accountSid =
-      resolved.twilio.accountSid ?? process.env.TWILIO_ACCOUNT_SID;
-    resolved.twilio.authToken =
-      resolved.twilio.authToken ?? process.env.TWILIO_AUTH_TOKEN;
-  }
-
-  // Plivo
-  if (resolved.provider === "plivo") {
-    resolved.plivo = resolved.plivo ?? {};
-    resolved.plivo.authId = resolved.plivo.authId ?? process.env.PLIVO_AUTH_ID;
-    resolved.plivo.authToken =
-      resolved.plivo.authToken ?? process.env.PLIVO_AUTH_TOKEN;
   }
 
   // Tunnel Config
@@ -844,11 +799,9 @@ export function validateProviderConfig(config: VoiceCallConfig): {
     errors.push("plugins.entries.voice-call.config.provider is required");
   }
 
-  if (!config.fromNumber && config.provider !== "mock") {
+  if (!config.fromNumber && config.provider !== "mock" && !config.autoProvision) {
     errors.push(
-      config.provider === "twilio"
-        ? "plugins.entries.voice-call.config.fromNumber is required (or set TWILIO_FROM_NUMBER env)"
-        : "plugins.entries.voice-call.config.fromNumber is required",
+      "plugins.entries.voice-call.config.fromNumber is required",
     );
   }
 
@@ -858,7 +811,7 @@ export function validateProviderConfig(config: VoiceCallConfig): {
         "plugins.entries.voice-call.config.telnyx.apiKey is required (or set TELNYX_API_KEY env)",
       );
     }
-    if (!config.telnyx?.connectionId) {
+    if (!config.telnyx?.connectionId && !config.autoProvision) {
       errors.push(
         "plugins.entries.voice-call.config.telnyx.connectionId is required (or set TELNYX_CONNECTION_ID env)",
       );
@@ -866,32 +819,6 @@ export function validateProviderConfig(config: VoiceCallConfig): {
     if (!config.skipSignatureVerification && !config.telnyx?.publicKey) {
       errors.push(
         "plugins.entries.voice-call.config.telnyx.publicKey is required (or set TELNYX_PUBLIC_KEY env)",
-      );
-    }
-  }
-
-  if (config.provider === "twilio") {
-    if (!config.twilio?.accountSid) {
-      errors.push(
-        "plugins.entries.voice-call.config.twilio.accountSid is required (or set TWILIO_ACCOUNT_SID env)",
-      );
-    }
-    if (!hasConfiguredSecretInput(config.twilio?.authToken)) {
-      errors.push(
-        "plugins.entries.voice-call.config.twilio.authToken is required (or set TWILIO_AUTH_TOKEN env)",
-      );
-    }
-  }
-
-  if (config.provider === "plivo") {
-    if (!config.plivo?.authId) {
-      errors.push(
-        "plugins.entries.voice-call.config.plivo.authId is required (or set PLIVO_AUTH_ID env)",
-      );
-    }
-    if (!config.plivo?.authToken) {
-      errors.push(
-        "plugins.entries.voice-call.config.plivo.authToken is required (or set PLIVO_AUTH_TOKEN env)",
       );
     }
   }
@@ -911,11 +838,10 @@ export function validateProviderConfig(config: VoiceCallConfig): {
   if (
     config.realtime.enabled &&
     config.provider &&
-    config.provider !== "twilio" &&
     config.provider !== "telnyx"
   ) {
     errors.push(
-      'plugins.entries.voice-call.config.provider must be "twilio" or "telnyx" when realtime.enabled is true',
+      'plugins.entries.voice-call.config.provider must be "telnyx" when realtime.enabled is true',
     );
   }
 

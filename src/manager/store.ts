@@ -22,7 +22,7 @@ export function persistCallRecord(storePath: string, call: CallRecord): void {
     content: line,
     rejectSymlinkParents: true,
   })
-    .catch((err) => {
+    .catch((err: unknown) => {
       console.error("[voice-call] Failed to persist call record:", err);
     })
     .finally(() => {

@@ -10,7 +10,7 @@ describe("getHeader", () => {
 
   it("matches headers case-insensitively", () => {
     expect(
-      getHeader({ "X-Twilio-Signature": "sig-1" }, "x-twilio-signature"),
+      getHeader({ "X-Telnyx-Signature": "sig-1" }, "x-telnyx-signature"),
     ).toBe("sig-1");
   });
 

@@ -46,7 +46,7 @@ describe("CallManager verification on restore", () => {
 
     const config = VoiceCallConfigSchema.parse({
       enabled: true,
-      provider: "plivo",
+      provider: "telnyx",
       fromNumber: "+15550000000",
       ...params?.configOverrides,
     });
@@ -203,7 +203,7 @@ describe("CallManager verification on restore", () => {
     };
     const config = VoiceCallConfigSchema.parse({
       enabled: true,
-      provider: "plivo",
+      provider: "telnyx",
       fromNumber: "+15550000000",
       maxDurationSeconds: 300,
     });
@@ -290,7 +290,7 @@ describe("CallManager verification on restore", () => {
     const provider = new FakeProvider();
     const config = VoiceCallConfigSchema.parse({
       enabled: true,
-      provider: "plivo",
+      provider: "telnyx",
       fromNumber: "+15550000000",
     });
     const manager = new CallManager(config, storePath);

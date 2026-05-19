@@ -6,7 +6,7 @@ import { createVoiceCallBaseConfig } from "./test-fixtures.js";
 
 const mocks = vi.hoisted(() => ({
   resolveVoiceCallConfig: vi.fn(),
-  resolveTwilioAuthToken: vi.fn(),
+  resolveTelnyxApiKey: vi.fn(),
   validateProviderConfig: vi.fn(),
   managerInitialize: vi.fn(),
   managerGetCall: vi.fn(),
@@ -47,7 +47,7 @@ vi.mock("./config.js", () => ({
   },
   resolveVoiceCallEffectiveConfig: (config: VoiceCallConfig) => ({ config }),
   resolveVoiceCallConfig: mocks.resolveVoiceCallConfig,
-  resolveTwilioAuthToken: mocks.resolveTwilioAuthToken,
+  resolveTelnyxApiKey: mocks.resolveTelnyxApiKey,
   validateProviderConfig: mocks.validateProviderConfig,
 }));
 
@@ -106,26 +106,18 @@ function createBaseConfig(): VoiceCallConfig {
 }
 
 function createExternalProviderConfig(params: {
-  provider: "twilio" | "telnyx" | "plivo";
+  provider: "telnyx" | "mock";
   publicUrl?: string;
 }): VoiceCallConfig {
   const config = createVoiceCallBaseConfig({
     provider: params.provider,
     tunnelProvider: "none",
   });
-  config.twilio = {
-    accountSid: "AC123",
-    authToken: "secret",
-  };
   config.telnyx = {
+
     apiKey: "key",
-    connectionId: "conn",
-    publicKey: "pub",
   };
-  config.plivo = {
-    authId: "MA123",
-    authToken: "secret",
-  };
+  config.telnyx = { apiKey: "KEY123", connectionId: "CONN456", publicKey: "PUB123" };
   if (params.publicUrl) {
     config.publicUrl = params.publicUrl;
   }
@@ -138,8 +130,8 @@ describe("createVoiceCallRuntime lifecycle", () => {
     mocks.resolveVoiceCallConfig.mockImplementation(
       (cfg: VoiceCallConfig) => cfg,
     );
-    mocks.resolveTwilioAuthToken.mockImplementation(
-      (cfg: VoiceCallConfig) => cfg.twilio?.authToken,
+    mocks.resolveTelnyxApiKey.mockImplementation(
+      (cfg: VoiceCallConfig) => cfg.telnyx?.apiKey,
     );
     mocks.validateProviderConfig.mockReturnValue({ valid: true, errors: [] });
     mocks.managerInitialize.mockResolvedValue(undefined);
@@ -235,39 +227,34 @@ describe("createVoiceCallRuntime lifecycle", () => {
     expect(mocks.webhookCtorArgs[0]?.[4]).toBe(fullConfig);
   });
 
-  it.each(["twilio", "telnyx", "plivo"] as const)(
-    "fails closed when %s falls back to a local-only webhook",
-    async (provider) => {
-      await expect(
-        createVoiceCallRuntime({
-          config: createExternalProviderConfig({ provider }),
-          coreConfig: {} as CoreConfig,
-          agentRuntime: {} as never,
-        }),
-      ).rejects.toThrow(
-        `${provider} requires a publicly reachable webhook URL`,
-      );
-      expect(mocks.webhookStop).toHaveBeenCalledTimes(1);
-    },
-  );
+  it("fails closed when telnyx falls back to a local-only webhook", async () => {
+    await expect(
+      createVoiceCallRuntime({
+        config: createExternalProviderConfig({ provider: "telnyx" }),
+        coreConfig: {} as CoreConfig,
+        agentRuntime: {} as never,
+      }),
+    ).rejects.toThrow("telnyx requires a publicly reachable webhook URL");
+    expect(mocks.webhookStop).toHaveBeenCalledTimes(1);
+  });
 
   it.each([
     "http://127.0.0.1:3334/voice/webhook",
     "http://[::1]:3334/voice/webhook",
     "http://[fd00::1]/voice/webhook",
   ])(
-    "fails closed when Twilio publicUrl %s points at a local-only webhook",
+    "fails closed when Telnyx publicUrl %s points at a local-only webhook",
     async (publicUrl) => {
       await expect(
         createVoiceCallRuntime({
           config: createExternalProviderConfig({
-            provider: "twilio",
+            provider: "telnyx",
             publicUrl,
           }),
           coreConfig: {} as CoreConfig,
           agentRuntime: {} as never,
         }),
-      ).rejects.toThrow("twilio requires a publicly reachable webhook URL");
+      ).rejects.toThrow("telnyx requires a publicly reachable webhook URL");
       expect(mocks.webhookStop).toHaveBeenCalledTimes(1);
     },
   );
@@ -275,7 +262,7 @@ describe("createVoiceCallRuntime lifecycle", () => {
   it("accepts an explicit public URL for external voice providers", async () => {
     const runtime = await createVoiceCallRuntime({
       config: createExternalProviderConfig({
-        provider: "twilio",
+        provider: "telnyx",
         publicUrl: "https://voice.example.com/voice/webhook",
       }),
       coreConfig: {} as CoreConfig,
@@ -297,7 +284,7 @@ describe("createVoiceCallRuntime lifecycle", () => {
 
     const runtime = await createVoiceCallRuntime({
       config: createExternalProviderConfig({
-        provider: "twilio",
+        provider: "telnyx",
         publicUrl: "https://voice.example.com/voice/webhook",
       }),
       coreConfig: {} as CoreConfig,

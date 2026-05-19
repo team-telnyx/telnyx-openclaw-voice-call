@@ -13,14 +13,14 @@ import {
   type CallRecord,
   type OutboundCallOptions,
 } from "../types.js";
-import { mapVoiceToPolly } from "../voice-mapping.js";
+
 import type { CallManagerContext } from "./context.js";
 import { finalizeCall } from "./lifecycle.js";
 import { getCallByProviderCallId } from "./lookup.js";
 import { addTranscriptEntry, transitionState } from "./state.js";
 import { persistCallRecord } from "./store.js";
 import { clearTranscriptWaiter, waitForFinalTranscript } from "./timers.js";
-import { generateDtmfRedirectTwiml, generateNotifyTwiml } from "./twiml.js";
+
 
 type InitiateContext = Pick<
   CallManagerContext,
@@ -207,25 +207,9 @@ export async function initiateCall(
   persistCallRecord(ctx.storePath, callRecord);
 
   try {
-    // For notify mode with a message, use inline TwiML with <Say>.
-    let inlineTwiml: string | undefined;
-    let preConnectTwiml: string | undefined;
     if (mode === "notify" && initialMessage) {
-      const pollyVoice = mapVoiceToPolly(resolvePreferredTtsVoice(ctx.config));
-      inlineTwiml = generateNotifyTwiml(initialMessage, pollyVoice);
-      if (ctx.provider.name === "twilio") {
-        console.log(
-          `[voice-call] Using inline TwiML for notify mode (voice: ${pollyVoice})`,
-        );
-      } else {
-        console.log(
-          `[voice-call] Generated inline notify-message TTS (provider: ${ctx.provider.name}, voice: ${pollyVoice})`,
-        );
-      }
-    } else if (dtmfSequence) {
-      preConnectTwiml = generateDtmfRedirectTwiml(dtmfSequence, ctx.webhookUrl);
       console.log(
-        `[voice-call] Using pre-connect DTMF TwiML for call ${callId} (digits=${dtmfSequence.length}, initialMessage=${initialMessage ? "yes" : "no"})`,
+        `[voice-call] Initiating notify-mode call with initial message (provider: ${ctx.provider.name})`,
       );
     }
 
@@ -234,15 +218,13 @@ export async function initiateCall(
       from,
       to,
       webhookUrl: ctx.webhookUrl,
-      inlineTwiml,
-      preConnectTwiml,
     });
 
     callRecord.providerCallId = result.providerCallId;
     ctx.providerCallIdMap.set(result.providerCallId, callId);
     persistCallRecord(ctx.storePath, callRecord);
     console.log(
-      `[voice-call] Outbound call initiated: callId=${callId} providerCallId=${result.providerCallId} mode=${mode} preConnectDtmf=${preConnectTwiml ? "yes" : "no"} initialMessage=${initialMessage ? "yes" : "no"}`,
+      `[voice-call] Outbound call initiated: callId=${callId} providerCallId=${result.providerCallId} mode=${mode} initialMessage=${initialMessage ? "yes" : "no"}`,
     );
 
     return { callId, success: true };
@@ -303,18 +285,9 @@ export async function speak(
 }
 
 function shouldStartListeningAfterInitialMessage(
-  ctx: ConversationContext,
+  _ctx: ConversationContext,
 ): boolean {
-  if (ctx.provider?.name !== "twilio") {
-    return true;
-  }
-  if (!ctx.config.streaming.enabled) {
-    return true;
-  }
-  const streamAwareProvider = ctx.provider as typeof ctx.provider & {
-    isConversationStreamConnectEnabled?: () => boolean;
-  };
-  return streamAwareProvider.isConversationStreamConnectEnabled?.() !== true;
+  return true;
 }
 
 export async function sendDtmf(
@@ -450,7 +423,7 @@ export async function continueCall(
 
   const turnStartedAt = Date.now();
   const turnToken =
-    provider.name === "twilio" ? crypto.randomUUID() : undefined;
+    undefined;
 
   try {
     await speak(ctx, callId, prompt);

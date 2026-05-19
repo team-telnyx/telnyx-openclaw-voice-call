@@ -53,7 +53,7 @@ const voiceCallConfigSchema = {
   uiHints: {
     provider: {
       label: "Provider",
-      help: "Use telnyx for production voice AI; twilio/plivo remain supported; mock is for dev/no-network.",
+      help: "Use telnyx for production voice AI; mock is for dev/no-network.",
     },
     fromNumber: { label: "From Number", placeholder: "+15550001234" },
     toNumber: { label: "Default To Number", placeholder: "+15550001234" },
@@ -68,8 +68,6 @@ const voiceCallConfigSchema = {
     "telnyx.apiKey": { label: "Telnyx API Key", sensitive: true },
     "telnyx.connectionId": { label: "Telnyx Connection ID" },
     "telnyx.publicKey": { label: "Telnyx Public Key", sensitive: true },
-    "twilio.accountSid": { label: "Twilio Account SID" },
-    "twilio.authToken": { label: "Twilio Auth Token", sensitive: true },
     "outbound.defaultMode": { label: "Default Call Mode" },
     "outbound.notifyHangupDelaySec": {
       label: "Notify Hangup Delay (sec)",
@@ -298,7 +296,7 @@ function getVoiceCallRuntimeGlobalState(): VoiceCallRuntimeGlobalState {
 export default definePluginEntry({
   id: "voice-call",
   name: "Voice Call",
-  description: "Voice-call plugin with Telnyx/Twilio/Plivo providers",
+  description: "Telnyx Voice AI plugin — enable one plugin and your OpenClaw agent becomes a Telnyx Voice AI phone number.",
   configSchema: voiceCallConfigSchema,
   register(api: OpenClawPluginApi) {
     const config = resolveVoiceCallConfig(

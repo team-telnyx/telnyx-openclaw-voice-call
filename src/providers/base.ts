@@ -1,5 +1,6 @@
 import type {
   AnswerCallInput,
+  ConferenceInput,
   GetCallStatusInput,
   GetCallStatusResult,
   HangupCallInput,
@@ -7,7 +8,9 @@ import type {
   InitiateCallResult,
   PlayTtsInput,
   ProviderName,
+  RecordingInput,
   SendDtmfInput,
+  TransferInput,
   WebhookParseOptions,
   ProviderWebhookParseResult,
   StartListeningInput,
@@ -20,7 +23,7 @@ import type {
 /**
  * Abstract base interface for voice call providers.
  *
- * Each provider (Telnyx, Twilio, etc.) implements this interface to provide
+ * Each provider (Telnyx, Mock, etc.) implements this interface to provide
  * a consistent API for the call manager.
  *
  * Responsibilities:
@@ -48,12 +51,6 @@ export interface VoiceCallProvider {
   ): ProviderWebhookParseResult;
 
   /**
-   * Consume one-time TwiML that must be served before shortcut handlers such as
-   * realtime media streams take over the webhook response.
-   */
-  consumeInitialTwiML?: (ctx: WebhookContext) => string | null;
-
-  /**
    * Initiate an outbound call.
    * @returns Provider call ID and status
    */
@@ -78,8 +75,8 @@ export interface VoiceCallProvider {
 
   /**
    * Start a provider media stream for realtime voice bridges.
-   * Providers that connect streams via webhook response (for example Twilio
-   * <Connect><Stream>) do not need to implement this hook.
+   * Providers that connect streams via webhook response do not need to
+   * implement this hook.
    */
   startRealtimeStream?: (input: StartRealtimeStreamInput) => Promise<void>;
 
@@ -105,4 +102,16 @@ export interface VoiceCallProvider {
    * so the caller can keep the call and rely on timer-based fallback.
    */
   getCallStatus(input: GetCallStatusInput): Promise<GetCallStatusResult>;
+
+  /** Create or join a conference bridge. */
+  createConference?: (input: ConferenceInput) => Promise<void>;
+
+  /** Start recording a call. */
+  startRecording?: (input: RecordingInput) => Promise<void>;
+
+  /** Stop recording a call. */
+  stopRecording?: (input: { callId: string; providerCallId: string }) => Promise<void>;
+
+  /** Transfer a call to another destination. */
+  transferCall?: (input: TransferInput) => Promise<void>;
 }

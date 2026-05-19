@@ -80,7 +80,7 @@ function createWebhookCall(params: {
   const callRecord: CallRecord = {
     callId,
     providerCallId: params.providerCallId,
-    provider: params.ctx.provider?.name || "twilio",
+    provider: params.ctx.provider?.name || "telnyx",
     direction: params.direction,
     state: "ringing",
     from: params.from,
@@ -135,7 +135,7 @@ export function processEvent(ctx: EventContext, event: NormalizedEvent): void {
 
   // Auto-register untracked calls arriving via webhook. This covers both
   // true inbound calls and externally-initiated outbound-api calls (e.g. calls
-  // placed directly via the Twilio REST API pointing at our webhook URL).
+  // placed directly via the provider REST API pointing at our webhook URL).
   if (!call && providerCallId && eventDirection) {
     // Apply inbound policy for true inbound calls; external outbound-api calls
     // are implicitly trusted because the caller controls the webhook URL.

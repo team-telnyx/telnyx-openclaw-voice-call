@@ -17,11 +17,6 @@
       "TELNYX_API_KEY",
       "TELNYX_CONNECTION_ID",
       "TELNYX_PUBLIC_KEY",
-      "TWILIO_ACCOUNT_SID",
-      "TWILIO_AUTH_TOKEN",
-      "TWILIO_FROM_NUMBER",
-      "PLIVO_AUTH_ID",
-      "PLIVO_AUTH_TOKEN",
       "NGROK_AUTHTOKEN",
       "NGROK_DOMAIN"
     ]
@@ -29,7 +24,7 @@
   "uiHints": {
     "provider": {
       "label": "Provider",
-      "help": "Use telnyx for production voice AI; twilio/plivo remain supported; mock is for dev/no-network."
+      "help": "Use telnyx for production voice AI; mock is for dev/no-network."
     },
     "fromNumber": {
       "label": "From Number",
@@ -63,13 +58,6 @@
     },
     "telnyx.publicKey": {
       "label": "Telnyx Public Key",
-      "sensitive": true
-    },
-    "twilio.accountSid": {
-      "label": "Twilio Account SID"
-    },
-    "twilio.authToken": {
-      "label": "Twilio Auth Token",
       "sensitive": true
     },
     "outbound.defaultMode": {
@@ -255,7 +243,7 @@
       },
       "provider": {
         "type": "string",
-        "enum": ["telnyx", "twilio", "plivo", "mock"]
+        "enum": ["telnyx", "mock"]
       },
       "telnyx": {
         "type": "object",
@@ -268,30 +256,6 @@
             "type": "string"
           },
           "publicKey": {
-            "type": "string"
-          }
-        }
-      },
-      "twilio": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "accountSid": {
-            "type": "string"
-          },
-          "authToken": {
-            "type": ["string", "object"]
-          }
-        }
-      },
-      "plivo": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "authId": {
-            "type": "string"
-          },
-          "authToken": {
             "type": "string"
           }
         }
@@ -895,10 +859,6 @@
     "compatibilityMigrationPaths": ["plugins.entries.voice-call.config"],
     "secretInputs": {
       "paths": [
-        {
-          "path": "twilio.authToken",
-          "expected": "string"
-        },
         {
           "path": "realtime.providers.*.apiKey",
           "expected": "string"

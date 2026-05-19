@@ -385,25 +385,7 @@ export class CallManager {
   }
 
   private shouldDeferConversationInitialMessageUntilStreamConnect(): boolean {
-    if (
-      !this.provider ||
-      this.provider.name !== "twilio" ||
-      !this.config.streaming.enabled
-    ) {
-      return false;
-    }
-
-    const streamAwareProvider = this.provider as VoiceCallProvider & {
-      isConversationStreamConnectEnabled?: () => boolean;
-    };
-    if (
-      typeof streamAwareProvider.isConversationStreamConnectEnabled !==
-      "function"
-    ) {
-      return false;
-    }
-
-    return streamAwareProvider.isConversationStreamConnectEnabled();
+    return false;
   }
 
   private maybeSpeakInitialMessageOnAnswered(call: CallRecord): void {
@@ -415,8 +397,7 @@ export class CallManager {
     }
 
     // Notify mode should speak as soon as the provider reports "answered".
-    // Conversation mode should defer only when the Twilio stream-connect path
-    // is actually available; otherwise speak immediately on answered.
+    // Conversation mode speaks immediately on answered unless realtime is enabled.
     const mode = (call.metadata?.mode as string | undefined) ?? "conversation";
     if (mode === "conversation") {
       if (this.config.realtime.enabled) {
@@ -446,7 +427,6 @@ export class CallManager {
   private maybeStartProviderRealtimeStream(call: CallRecord): void {
     if (
       !this.provider ||
-      this.provider.name === "twilio" ||
       !call.providerCallId
     ) {
       return;
@@ -492,7 +472,7 @@ export class CallManager {
   }
 
   /**
-   * Get an active call by provider call ID (e.g., Twilio CallSid).
+   * Get an active call by provider call ID.
    */
   getCallByProviderCallId(providerCallId: string): CallRecord | undefined {
     return getCallByProviderCallIdFromMaps({

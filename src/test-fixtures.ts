@@ -2,11 +2,12 @@ import type { VoiceCallConfig } from "./config.js";
 import { DEFAULT_VOICE_CALL_REALTIME_INSTRUCTIONS } from "./realtime-defaults.js";
 
 export function createVoiceCallBaseConfig(params?: {
-  provider?: "telnyx" | "twilio" | "plivo" | "mock";
+  provider?: "telnyx" | "mock";
   tunnelProvider?: "none" | "ngrok";
 }): VoiceCallConfig {
   return {
     enabled: true,
+    autoProvision: false,
     provider: params?.provider ?? "mock",
     fromNumber: "+15550001234",
     inboundPolicy: "disabled",

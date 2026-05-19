@@ -23,7 +23,7 @@ import type { CallRecord, NormalizedEvent } from "../types.js";
 import type { WebhookResponsePayload } from "../webhook.types.js";
 import {
   RealtimeMulawSpeechStartDetector,
-  RealtimeTwilioAudioPacer,
+  RealtimeAudioPacer,
 } from "./realtime-audio-pacer.js";
 
 export type ToolHandlerContext = {
@@ -247,7 +247,7 @@ type PendingStreamToken = {
   from?: string;
   to?: string;
   direction?: "inbound" | "outbound";
-  provider?: "telnyx" | "twilio";
+  provider?: "telnyx";
   providerCallId?: string;
   callId?: string;
 };
@@ -379,7 +379,7 @@ export class RealtimeCallHandler {
   }
 
   buildProviderStreamUrl(input: {
-    provider: "telnyx" | "twilio";
+    provider: "telnyx";
     providerCallId?: string;
     callId?: string;
     from?: string;
@@ -389,32 +389,6 @@ export class RealtimeCallHandler {
     const token = this.issueStreamToken(input);
     const host = this.publicOrigin || DEFAULT_HOST;
     return `wss://${host}${this.getStreamPathPattern()}/${token}`;
-  }
-
-  buildTwiMLPayload(
-    req: http.IncomingMessage,
-    params?: URLSearchParams,
-  ): WebhookResponsePayload {
-    const host = this.publicOrigin || req.headers.host || DEFAULT_HOST;
-    const rawDirection = params?.get("Direction");
-    const token = this.issueStreamToken({
-      provider: "twilio",
-      from: params?.get("From") ?? undefined,
-      to: params?.get("To") ?? undefined,
-      direction: rawDirection?.startsWith("outbound") ? "outbound" : "inbound",
-    });
-    const wsUrl = `wss://${host}${this.getStreamPathPattern()}/${token}`;
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Connect>
-    <Stream url="${wsUrl}" />
-  </Connect>
-</Response>`;
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "text/xml" },
-      body: twiml,
-    };
   }
 
   handleWebSocketUpgrade(
@@ -688,8 +662,7 @@ export class RealtimeCallHandler {
       }
       return true;
     };
-    const audioPacer = new RealtimeTwilioAudioPacer({
-      provider: callerMeta.provider,
+    const audioPacer = new RealtimeAudioPacer({
       streamSid,
       sendJson,
       onBackpressure: () => {

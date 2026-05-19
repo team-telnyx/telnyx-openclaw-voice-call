@@ -48,7 +48,6 @@ export function collectVoiceCallLegacyConfigIssues(
   value: unknown,
 ): VoiceCallLegacyConfigIssue[] {
   const raw = asObject(value) ?? {};
-  const twilio = asObject(raw.twilio);
   const streaming = asObject(raw.streaming);
 
   const issues: VoiceCallLegacyConfigIssue[] = [];
@@ -57,13 +56,6 @@ export function collectVoiceCallLegacyConfigIssues(
       path: "provider",
       replacement: "provider",
       message: 'Replace provider "log" with "mock".',
-    });
-  }
-  if (typeof twilio?.from === "string") {
-    issues.push({
-      path: "twilio.from",
-      replacement: "fromNumber",
-      message: "Move twilio.from to fromNumber.",
     });
   }
   if (typeof streaming?.sttProvider === "string") {
@@ -136,7 +128,6 @@ export function migrateVoiceCallLegacyConfigInput(params: {
   issues: VoiceCallLegacyConfigIssue[];
 } {
   const raw = asObject(params.value) ?? {};
-  const twilio = asObject(raw.twilio);
   const streaming = asObject(raw.streaming);
   const configPathPrefix =
     params.configPathPrefix ?? "plugins.entries.voice-call.config";
@@ -182,33 +173,15 @@ export function migrateVoiceCallLegacyConfigInput(params: {
     delete normalizedStreaming.vadThreshold;
   }
 
-  const normalizedTwilio = twilio
-    ? {
-        ...twilio,
-      }
-    : undefined;
-  if (normalizedTwilio) {
-    delete normalizedTwilio.from;
-  }
-
   const config = {
     ...raw,
     provider: raw.provider === "log" ? "mock" : raw.provider,
-    fromNumber:
-      raw.fromNumber ??
-      (typeof twilio?.from === "string" ? twilio.from : undefined),
-    twilio: normalizedTwilio,
     streaming: normalizedStreaming,
   };
 
   const changes: string[] = [];
   if (raw.provider === "log") {
     changes.push(`Moved ${configPathPrefix}.provider "log" → "mock".`);
-  }
-  if (typeof twilio?.from === "string" && typeof raw.fromNumber !== "string") {
-    changes.push(
-      `Moved ${configPathPrefix}.twilio.from → ${configPathPrefix}.fromNumber.`,
-    );
   }
   if (typeof streaming?.sttProvider === "string") {
     changes.push(

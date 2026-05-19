@@ -21,9 +21,7 @@ export function providerRequiresPublicWebhook(
   providerName: string | undefined,
 ): boolean {
   return (
-    providerName === "twilio" ||
-    providerName === "telnyx" ||
-    providerName === "plivo"
+    providerName === "telnyx"
   );
 }
 

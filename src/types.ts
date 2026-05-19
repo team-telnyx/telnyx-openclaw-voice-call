@@ -5,7 +5,7 @@ import type { CallMode } from "./config.js";
 // Provider Identifiers
 // -----------------------------------------------------------------------------
 
-const ProviderNameSchema = z.enum(["telnyx", "twilio", "plivo", "mock"]);
+const ProviderNameSchema = z.enum(["telnyx", "mock"]);
 export type ProviderName = z.infer<typeof ProviderNameSchema>;
 
 // -----------------------------------------------------------------------------
@@ -79,7 +79,7 @@ const BaseEventSchema = z.object({
   callId: z.string(),
   providerCallId: z.string().optional(),
   timestamp: z.number(),
-  // Optional per-turn nonce for speech events (Twilio <Gather> replay hardening).
+  // Optional per-turn nonce for speech events.
   turnToken: z.string().optional(),
   // Optional fields for inbound call detection
   direction: z.enum(["inbound", "outbound"]).optional(),
@@ -211,10 +211,6 @@ export type InitiateCallInput = {
   to: string;
   webhookUrl: string;
   clientState?: Record<string, string>;
-  /** Inline TwiML to execute without fetching webhook TwiML. */
-  inlineTwiml?: string;
-  /** TwiML to serve once before normal webhook-driven call handling resumes. */
-  preConnectTwiml?: string;
 };
 
 export type InitiateCallResult = {
@@ -280,6 +276,33 @@ export type GetCallStatusResult = {
   isTerminal: boolean;
   /** True when the status could not be determined (transient error) */
   isUnknown?: boolean;
+};
+
+// -----------------------------------------------------------------------------
+// Outbound Call Options
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+// Conference, Recording, and Transfer Types
+// -----------------------------------------------------------------------------
+
+export type ConferenceInput = {
+  callId: string;
+  providerCallId: string;
+  conferenceName: string;
+};
+
+export type RecordingInput = {
+  callId: string;
+  providerCallId: string;
+  channels?: "single" | "dual";
+  format?: "wav" | "mp3";
+};
+
+export type TransferInput = {
+  callId: string;
+  providerCallId: string;
+  to: string;
 };
 
 // -----------------------------------------------------------------------------

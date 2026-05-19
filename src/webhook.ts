@@ -2,7 +2,14 @@ import http from "node:http";
 import { URL } from "node:url";
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-types";
 import { resolveConfiguredCapabilityProvider } from "openclaw/plugin-sdk/provider-selection-runtime";
-import type { TalkEvent } from "openclaw/plugin-sdk/realtime-voice";
+// TalkEvent type inlined since it may not be exported from the current SDK version
+type TalkEvent = {
+  type: string;
+  timestamp: number;
+  sessionId?: string;
+  turnId?: string;
+  [key: string]: unknown;
+};
 import { normalizeOptionalString } from "openclaw/plugin-sdk/text-runtime";
 import {
   createWebhookInFlightLimiter,
@@ -22,11 +29,8 @@ import {
 import type { CoreAgentDeps, CoreConfig } from "./core-bridge.js";
 import { getHeader } from "./http-headers.js";
 import type { CallManager } from "./manager.js";
-import type { MediaStreamConfig } from "./media-stream.js";
-import { MediaStreamHandler } from "./media-stream.js";
 import type { VoiceCallProvider } from "./providers/base.js";
-import { isProviderStatusTerminal } from "./providers/shared/call-status.js";
-import type { TwilioProvider } from "./providers/twilio.js";
+
 import type { CallRecord, NormalizedEvent, WebhookContext } from "./types.js";
 import type { WebhookResponsePayload } from "./webhook.types.js";
 import type { RealtimeCallHandler } from "./webhook/realtime-handler.js";
@@ -94,9 +98,9 @@ function appendRecentTalkEventMetadata(
         (
           entry,
         ): entry is {
-          at: string;
+          at: number;
           type: string;
-          sessionId: string;
+          sessionId?: string;
           turnId?: string;
         } => !!entry && typeof entry === "object" && !Array.isArray(entry),
       )
@@ -188,13 +192,7 @@ function normalizeWebhookResponse(parsed: {
   };
 }
 
-function buildRealtimeRejectedTwiML(): WebhookResponsePayload {
-  return {
-    statusCode: 200,
-    headers: { "Content-Type": "text/xml" },
-    body: '<?xml version="1.0" encoding="UTF-8"?><Response><Reject reason="rejected" /></Response>',
-  };
-}
+
 
 /**
  * HTTP server for receiving voice call webhooks from providers.
@@ -214,8 +212,6 @@ export class VoiceCallWebhookServer {
   private stopStaleCallReaper: (() => void) | null = null;
   private readonly webhookInFlightLimiter = createWebhookInFlightLimiter();
 
-  /** Media stream handler for bidirectional audio (when streaming enabled) */
-  private mediaStreamHandler: MediaStreamHandler | null = null;
   /** Delayed auto-hangup timers keyed by provider call ID after stream disconnect. */
   private pendingDisconnectHangups = new Map<
     string,
@@ -250,8 +246,8 @@ export class VoiceCallWebhookServer {
   /**
    * Get the media stream handler (for wiring to provider).
    */
-  getMediaStreamHandler(): MediaStreamHandler | null {
-    return this.mediaStreamHandler;
+  getMediaStreamHandler(): unknown {
+    return null;
   }
 
   getRealtimeHandler(): RealtimeCallHandler | null {
@@ -339,205 +335,15 @@ export class VoiceCallWebhookServer {
   /**
    * Initialize media streaming with the selected realtime transcription provider.
    */
+  /**
+   * Initialize media streaming.
+   * Note: Legacy media streaming (non-realtime STT) is not supported in this
+   * Telnyx-only plugin. Use realtime mode for bidirectional voice AI.
+   */
   private async initializeMediaStreaming(): Promise<void> {
-    const streaming = this.config.streaming;
-    const pluginConfig =
-      this.fullConfig ??
-      (this.coreConfig as unknown as OpenClawConfig | undefined);
-    const {
-      getRealtimeTranscriptionProvider,
-      listRealtimeTranscriptionProviders,
-    } = await loadRealtimeTranscriptionRuntime();
-    const resolution = resolveConfiguredCapabilityProvider({
-      configuredProviderId: streaming.provider,
-      providerConfigs: streaming.providers,
-      cfg: pluginConfig,
-      cfgForResolve: pluginConfig ?? ({} as OpenClawConfig),
-      getConfiguredProvider: (providerId) =>
-        getRealtimeTranscriptionProvider(providerId, pluginConfig),
-      listProviders: () => listRealtimeTranscriptionProviders(pluginConfig),
-      resolveProviderConfig: ({ provider, cfg, rawConfig }) =>
-        provider.resolveConfig?.({ cfg, rawConfig }) ?? rawConfig,
-      isProviderConfigured: ({ provider, cfg, providerConfig }) =>
-        provider.isConfigured({ cfg, providerConfig }),
-    });
-    if (!resolution.ok && resolution.code === "missing-configured-provider") {
-      console.warn(
-        `[voice-call] Streaming enabled but realtime transcription provider "${resolution.configuredProviderId}" is not registered`,
-      );
-      return;
-    }
-    if (!resolution.ok && resolution.code === "no-registered-provider") {
-      console.warn(
-        "[voice-call] Streaming enabled but no realtime transcription provider is registered",
-      );
-      return;
-    }
-    if (!resolution.ok) {
-      console.warn(
-        `[voice-call] Streaming enabled but provider "${resolution.provider?.id}" is not configured`,
-      );
-      return;
-    }
-    const provider = resolution.provider;
-    const providerConfig = resolution.providerConfig;
-
-    const streamConfig: MediaStreamConfig = {
-      transcriptionProvider: provider,
-      providerConfig,
-      preStartTimeoutMs: streaming.preStartTimeoutMs,
-      maxPendingConnections: streaming.maxPendingConnections,
-      maxPendingConnectionsPerIp: streaming.maxPendingConnectionsPerIp,
-      maxConnections: streaming.maxConnections,
-      resolveClientIp: (request) => this.resolveMediaStreamClientIp(request),
-      shouldAcceptStream: ({ callId, token }) => {
-        const call = this.manager.getCallByProviderCallId(callId);
-        if (!call) {
-          return false;
-        }
-        if (this.provider.name === "twilio") {
-          const twilio = this.provider as TwilioProvider;
-          if (!twilio.isValidStreamToken(callId, token)) {
-            console.warn(
-              `[voice-call] Rejecting media stream: invalid token for ${callId}`,
-            );
-            return false;
-          }
-        }
-        return true;
-      },
-      onTranscript: (providerCallId, transcript) => {
-        const safeTranscript = sanitizeTranscriptForLog(transcript);
-        console.log(
-          `[voice-call] Transcript for ${providerCallId}: ${safeTranscript} (chars=${transcript.length})`,
-        );
-        const call = this.manager.getCallByProviderCallId(providerCallId);
-        if (!call) {
-          console.warn(
-            `[voice-call] No active call found for provider ID: ${providerCallId}`,
-          );
-          return;
-        }
-        const suppressBargeIn =
-          this.shouldSuppressBargeInForInitialMessage(call);
-        if (suppressBargeIn) {
-          console.log(
-            `[voice-call] Ignoring barge transcript while initial message is still playing (${providerCallId})`,
-          );
-          return;
-        }
-
-        // Clear TTS queue on barge-in (user started speaking, interrupt current playback)
-        if (this.provider.name === "twilio") {
-          (this.provider as TwilioProvider).clearTtsQueue(providerCallId);
-        }
-
-        // Create a speech event and process it through the manager
-        const event: NormalizedEvent = {
-          id: `stream-transcript-${Date.now()}`,
-          type: "call.speech",
-          callId: call.callId,
-          providerCallId,
-          timestamp: Date.now(),
-          transcript,
-          isFinal: true,
-        };
-        this.manager.processEvent(event);
-
-        // Auto-respond in conversation mode (inbound always, outbound if mode is conversation)
-        const callMode = call.metadata?.mode as string | undefined;
-        const shouldRespond =
-          call.direction === "inbound" || callMode === "conversation";
-        if (shouldRespond) {
-          this.handleInboundResponse(call.callId, transcript).catch((err) => {
-            console.warn(`[voice-call] Failed to auto-respond:`, err);
-          });
-        }
-      },
-      onSpeechStart: (providerCallId) => {
-        if (this.provider.name !== "twilio") {
-          return;
-        }
-        const call = this.manager.getCallByProviderCallId(providerCallId);
-        if (this.shouldSuppressBargeInForInitialMessage(call)) {
-          return;
-        }
-        (this.provider as TwilioProvider).clearTtsQueue(providerCallId);
-      },
-      onPartialTranscript: (callId, partial) => {
-        const safePartial = sanitizeTranscriptForLog(partial);
-        console.log(
-          `[voice-call] Partial for ${callId}: ${safePartial} (chars=${partial.length})`,
-        );
-      },
-      onTalkEvent: (providerCallId, _streamSid, event) => {
-        const call = this.manager.getCallByProviderCallId(providerCallId);
-        if (call) {
-          appendRecentTalkEventMetadata(call, event);
-        }
-      },
-      onConnect: (callId, streamSid) => {
-        console.log(
-          `[voice-call] Media stream connected: ${callId} -> ${streamSid}`,
-        );
-        this.clearPendingDisconnectHangup(callId);
-
-        // Register stream with provider for TTS routing
-        if (this.provider.name === "twilio") {
-          (this.provider as TwilioProvider).registerCallStream(
-            callId,
-            streamSid,
-          );
-        }
-      },
-      onTranscriptionReady: (callId) => {
-        this.manager.speakInitialMessage(callId).catch((err) => {
-          console.warn(`[voice-call] Failed to speak initial message:`, err);
-        });
-      },
-      onDisconnect: (callId, streamSid) => {
-        console.log(
-          `[voice-call] Media stream disconnected: ${callId} (${streamSid})`,
-        );
-        if (this.provider.name === "twilio") {
-          (this.provider as TwilioProvider).unregisterCallStream(
-            callId,
-            streamSid,
-          );
-        }
-
-        this.clearPendingDisconnectHangup(callId);
-        const timer = setTimeout(() => {
-          this.pendingDisconnectHangups.delete(callId);
-          const disconnectedCall = this.manager.getCallByProviderCallId(callId);
-          if (!disconnectedCall) {
-            return;
-          }
-
-          if (this.provider.name === "twilio") {
-            const twilio = this.provider as TwilioProvider;
-            if (twilio.hasRegisteredStream(callId)) {
-              return;
-            }
-          }
-
-          console.log(
-            `[voice-call] Auto-ending call ${disconnectedCall.callId} after stream disconnect grace`,
-          );
-          void this.manager.endCall(disconnectedCall.callId).catch((err) => {
-            console.warn(
-              `[voice-call] Failed to auto-end call ${disconnectedCall.callId}:`,
-              err,
-            );
-          });
-        }, STREAM_DISCONNECT_HANGUP_GRACE_MS);
-        timer.unref?.();
-        this.pendingDisconnectHangups.set(callId, timer);
-      },
-    };
-
-    this.mediaStreamHandler = new MediaStreamHandler(streamConfig);
-    console.log("[voice-call] Media streaming initialized");
+    console.warn(
+      "[voice-call] Legacy media streaming is not available in the Telnyx-only plugin. Use realtime mode instead.",
+    );
   }
 
   /**
@@ -555,7 +361,7 @@ export class VoiceCallWebhookServer {
       return this.listeningUrl ?? this.resolveListeningUrl(bind, webhookPath);
     }
 
-    if (this.config.streaming.enabled && !this.mediaStreamHandler) {
+    if (this.config.streaming.enabled) {
       await this.initializeMediaStreaming();
     }
 
@@ -573,21 +379,13 @@ export class VoiceCallWebhookServer {
       });
 
       // Handle WebSocket upgrades for realtime voice and media streams.
-      if (this.realtimeHandler || this.mediaStreamHandler) {
+      if (this.realtimeHandler) {
         this.server.on("upgrade", (request, socket, head) => {
-          if (
-            this.realtimeHandler &&
-            this.isRealtimeWebSocketUpgrade(request)
-          ) {
-            this.realtimeHandler.handleWebSocketUpgrade(request, socket, head);
+          if (this.isRealtimeWebSocketUpgrade(request)) {
+            this.realtimeHandler!.handleWebSocketUpgrade(request, socket, head);
             return;
           }
-          const path = this.getUpgradePathname(request);
-          if (path === streamPath && this.mediaStreamHandler) {
-            this.mediaStreamHandler?.handleUpgrade(request, socket, head);
-          } else {
-            socket.destroy();
-          }
+          socket.destroy();
         });
       }
 
@@ -603,16 +401,7 @@ export class VoiceCallWebhookServer {
         this.listeningUrl = url;
         this.startPromise = null;
         this.logger.info(`[voice-call] Webhook server listening on ${url}`);
-        if (this.mediaStreamHandler) {
-          const address = this.server?.address();
-          const actualPort =
-            address && typeof address === "object"
-              ? address.port
-              : this.config.serve.port;
-          this.logger.info(
-            `[voice-call] Media stream WebSocket on ws://${bind}:${actualPort}${streamPath}`,
-          );
-        }
+
         resolve(url);
 
         // Start the stale call reaper if configured
@@ -718,12 +507,8 @@ export class VoiceCallWebhookServer {
     if (url.pathname === "/voice/hold-music") {
       return {
         statusCode: 200,
-        headers: { "Content-Type": "text/xml" },
-        body: `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="alice">All agents are currently busy. Please hold.</Say>
-  <Play loop="0">https://s3.amazonaws.com/com.twilio.music.classical/BusyStrings.mp3</Play>
-</Response>`,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "hold", message: "All agents are currently busy. Please hold." }),
       };
     }
 
@@ -804,37 +589,7 @@ export class VoiceCallWebhookServer {
         return { statusCode: 401, body: "Unauthorized" };
       }
 
-      const initialTwiML = this.provider.consumeInitialTwiML?.(ctx);
-      if (initialTwiML !== undefined && initialTwiML !== null) {
-        const params = new URLSearchParams(ctx.rawBody);
-        console.log(
-          `[voice-call] Serving provider initial TwiML before realtime handling (callSid=${params.get("CallSid") ?? "unknown"}, direction=${params.get("Direction") ?? "unknown"})`,
-        );
-        return {
-          statusCode: 200,
-          headers: { "Content-Type": "application/xml" },
-          body: initialTwiML,
-        };
-      }
 
-      const realtimeParams = this.getRealtimeTwimlParams(ctx);
-      if (realtimeParams) {
-        const direction = realtimeParams.get("Direction");
-        const isInboundRealtimeRequest = !direction || direction === "inbound";
-        if (
-          isInboundRealtimeRequest &&
-          !this.shouldAcceptRealtimeInboundRequest(realtimeParams)
-        ) {
-          console.log(
-            "[voice-call] Realtime inbound call rejected before stream setup",
-          );
-          return buildRealtimeRejectedTwiML();
-        }
-        console.log(
-          `[voice-call] Serving realtime TwiML for Twilio call ${realtimeParams.get("CallSid") ?? "unknown"} (direction=${direction ?? "unknown"})`,
-        );
-        return this.realtimeHandler!.buildTwiMLPayload(req, realtimeParams);
-      }
 
       const parsed = this.provider.parseWebhookEvent(ctx, {
         verifiedRequestKey: verification.verifiedRequestKey,
@@ -872,23 +627,7 @@ export class VoiceCallWebhookServer {
           reason: "missing Telnyx signature or timestamp header",
         };
       }
-      case "twilio":
-        if (getHeader(headers, "x-twilio-signature")) {
-          return { ok: true };
-        }
-        return { ok: false, reason: "missing X-Twilio-Signature header" };
-      case "plivo": {
-        const hasV3 =
-          Boolean(getHeader(headers, "x-plivo-signature-v3")) &&
-          Boolean(getHeader(headers, "x-plivo-signature-v3-nonce"));
-        const hasV2 =
-          Boolean(getHeader(headers, "x-plivo-signature-v2")) &&
-          Boolean(getHeader(headers, "x-plivo-signature-v2-nonce"));
-        if (hasV3 || hasV2) {
-          return { ok: true };
-        }
-        return { ok: false, reason: "missing Plivo signature headers" };
-      }
+
       default:
         return { ok: true };
     }
@@ -904,32 +643,7 @@ export class VoiceCallWebhookServer {
     }
   }
 
-  private getRealtimeTwimlParams(ctx: WebhookContext): URLSearchParams | null {
-    if (!this.realtimeHandler || this.provider.name !== "twilio") {
-      return null;
-    }
 
-    const params = new URLSearchParams(ctx.rawBody);
-    const direction = params.get("Direction");
-    const isSupportedDirection =
-      !direction || direction === "inbound" || direction.startsWith("outbound");
-    if (!isSupportedDirection) {
-      return null;
-    }
-
-    if (ctx.query?.type === "status") {
-      return null;
-    }
-
-    const callStatus = params.get("CallStatus");
-    if (callStatus && isProviderStatusTerminal(callStatus)) {
-      return null;
-    }
-
-    // Replays must return the same TwiML body so Twilio retries reconnect cleanly.
-    // The one-time token still changes, but the behavior stays identical.
-    return !params.get("SpeechResult") && !params.get("Digits") ? params : null;
-  }
 
   private shouldAcceptRealtimeInboundRequest(params: URLSearchParams): boolean {
     switch (this.config.inboundPolicy) {

@@ -44,7 +44,7 @@ function createContext(
     provider: null,
     config: VoiceCallConfigSchema.parse({
       enabled: true,
-      provider: "plivo",
+      provider: "telnyx",
       fromNumber: "+15550000000",
     }),
     storePath,
@@ -63,7 +63,7 @@ function createProvider(
   overrides: Partial<VoiceCallProvider> = {},
 ): VoiceCallProvider {
   return {
-    name: "plivo",
+    name: "telnyx",
     verifyWebhook: () => ({ ok: true }),
     parseWebhookEvent: () => ({ events: [] }),
     initiateCall: async () => ({
@@ -82,7 +82,7 @@ function createProvider(
 function createInboundDisabledConfig() {
   return VoiceCallConfigSchema.parse({
     enabled: true,
-    provider: "plivo",
+    provider: "telnyx",
     fromNumber: "+15550000000",
     inboundPolicy: "disabled",
   });
@@ -240,7 +240,7 @@ describe("processEvent (functional)", () => {
     ctx.activeCalls.set("call-1", {
       callId: "call-1",
       providerCallId: "request-uuid",
-      provider: "plivo",
+      provider: "telnyx",
       direction: "outbound",
       state: "initiated",
       from: "+15550000000",
@@ -288,7 +288,7 @@ describe("processEvent (functional)", () => {
     ctx.activeCalls.set("call-late", {
       callId: "call-late",
       providerCallId: "provider-late",
-      provider: "plivo",
+      provider: "telnyx",
       direction: "inbound",
       state: "ringing",
       from: "+15550000002",
@@ -324,7 +324,7 @@ describe("processEvent (functional)", () => {
     ctx.activeCalls.set("call-2", {
       callId: "call-2",
       providerCallId: "call-2-provider",
-      provider: "plivo",
+      provider: "telnyx",
       direction: "inbound",
       state: "ringing",
       from: "+15550000002",
@@ -418,7 +418,7 @@ describe("processEvent (functional)", () => {
     const ctx = createContext({
       config: VoiceCallConfigSchema.parse({
         enabled: true,
-        provider: "plivo",
+        provider: "telnyx",
         fromNumber: "+15550000000",
         inboundPolicy: "open",
       }),
@@ -445,7 +445,7 @@ describe("processEvent (functional)", () => {
     const ctx = createContext({
       config: VoiceCallConfigSchema.parse({
         enabled: true,
-        provider: "plivo",
+        provider: "telnyx",
         fromNumber: "+15550000000",
         inboundPolicy: "open",
         sessionScope: "per-call",
@@ -472,7 +472,7 @@ describe("processEvent (functional)", () => {
     const ctx = createContext({
       config: VoiceCallConfigSchema.parse({
         enabled: true,
-        provider: "plivo",
+        provider: "telnyx",
         fromNumber: "+15550000000",
         inboundPolicy: "open",
         inboundGreeting: "Hello from global.",
@@ -511,7 +511,7 @@ describe("processEvent (functional)", () => {
     ctx.activeCalls.set("call-dedupe", {
       callId: "call-dedupe",
       providerCallId: "provider-dedupe",
-      provider: "plivo",
+      provider: "telnyx",
       direction: "outbound",
       state: "answered",
       from: "+15550000000",
@@ -559,7 +559,7 @@ describe("processEvent (functional)", () => {
     ctx.activeCalls.set("call-retryable-error", {
       callId: "call-retryable-error",
       providerCallId: "provider-retryable-error",
-      provider: "plivo",
+      provider: "telnyx",
       direction: "outbound",
       state: "active",
       from: "+15550000000",

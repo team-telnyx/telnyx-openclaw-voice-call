@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import type { TelnyxConfig } from "../config.js";
 import type {
   AnswerCallInput,
+  ConferenceInput,
   EndReason,
   GetCallStatusInput,
   GetCallStatusResult,
@@ -11,9 +12,11 @@ import type {
   NormalizedEvent,
   PlayTtsInput,
   ProviderWebhookParseResult,
+  RecordingInput,
   StartListeningInput,
   StartRealtimeStreamInput,
   StopListeningInput,
+  TransferInput,
   WebhookContext,
   WebhookParseOptions,
   WebhookVerificationResult,
@@ -369,6 +372,55 @@ export class TelnyxProvider implements VoiceCallProvider {
       { command_id: crypto.randomUUID() },
       { allowNotFound: true },
     );
+  }
+
+  /**
+   * Create or join a Telnyx conference bridge.
+   */
+  async createConference(input: ConferenceInput): Promise<void> {
+    await this.apiRequest(`/calls/${input.providerCallId}/actions/conference`, {
+      command_id: `openclaw-conf-${input.callId}`,
+      call_control_id: input.providerCallId,
+      name: input.conferenceName,
+      beep_enabled: "never",
+      start_conference_on_create: true,
+    });
+  }
+
+  /**
+   * Start recording a call via Telnyx.
+   */
+  async startRecording(input: RecordingInput): Promise<void> {
+    await this.apiRequest(
+      `/calls/${input.providerCallId}/actions/record_start`,
+      {
+        command_id: `openclaw-rec-start-${input.callId}`,
+        format: input.format || "mp3",
+        channels: input.channels || "single",
+      },
+    );
+  }
+
+  /**
+   * Stop recording a call via Telnyx.
+   */
+  async stopRecording(input: { callId: string; providerCallId: string }): Promise<void> {
+    await this.apiRequest(
+      `/calls/${input.providerCallId}/actions/record_stop`,
+      {
+        command_id: `openclaw-rec-stop-${input.callId}`,
+      },
+    );
+  }
+
+  /**
+   * Transfer a call to another destination via Telnyx.
+   */
+  async transferCall(input: TransferInput): Promise<void> {
+    await this.apiRequest(`/calls/${input.providerCallId}/actions/transfer`, {
+      command_id: `openclaw-transfer-${input.callId}`,
+      to: input.to,
+    });
   }
 
   async getCallStatus(input: GetCallStatusInput): Promise<GetCallStatusResult> {
