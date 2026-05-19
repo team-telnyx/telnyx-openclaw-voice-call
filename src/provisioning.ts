@@ -141,7 +141,8 @@ async function createCallControlApplication(params: {
     },
     allowedHostnames: TELNYX_ALLOWED_HOSTNAMES,
     auditContext: "voice-call:provisioning:create-cca",
-    errorPrefix: "[voice-call:provisioning] Failed to create Call Control Application",
+    errorPrefix:
+      "[voice-call:provisioning] Failed to create Call Control Application",
   });
 
   const applicationId = response.data.id;
@@ -158,17 +159,15 @@ async function searchAvailablePhoneNumber(params: {
     `${TELNYX_API_BASE}/available_phone_numbers` +
     `?filter[country_code]=US&filter[features][]=voice&filter[limit]=1`;
 
-  const response = await guardedJsonApiRequest<TelnyxAvailableNumbersResponse>(
-    {
-      url,
-      method: "GET",
-      headers: authHeaders(params.apiKey),
-      allowedHostnames: TELNYX_ALLOWED_HOSTNAMES,
-      auditContext: "voice-call:provisioning:search-numbers",
-      errorPrefix:
-        "[voice-call:provisioning] Failed to search available phone numbers",
-    },
-  );
+  const response = await guardedJsonApiRequest<TelnyxAvailableNumbersResponse>({
+    url,
+    method: "GET",
+    headers: authHeaders(params.apiKey),
+    allowedHostnames: TELNYX_ALLOWED_HOSTNAMES,
+    auditContext: "voice-call:provisioning:search-numbers",
+    errorPrefix:
+      "[voice-call:provisioning] Failed to search available phone numbers",
+  });
 
   const first = response.data?.[0];
   if (!first?.phone_number) {
@@ -226,7 +225,9 @@ export async function deprovision(params: {
 
   const state = params.state ?? loadProvisionedState(params.storePath);
   if (!state) {
-    log.warn("[voice-call:provisioning] No provisioned state found — nothing to deprovision");
+    log.warn(
+      "[voice-call:provisioning] No provisioned state found — nothing to deprovision",
+    );
     return;
   }
 

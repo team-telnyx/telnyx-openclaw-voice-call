@@ -85,7 +85,6 @@ function loadTelnyxProvider(): Promise<TelnyxProviderModule> {
   return telnyxProviderPromise;
 }
 
-
 function loadMockProvider(): Promise<MockProviderModule> {
   mockProviderPromise ??= import("./providers/mock.js");
   return mockProviderPromise;

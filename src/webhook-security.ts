@@ -105,7 +105,12 @@ function importEd25519PublicKey(publicKey: string): crypto.KeyObject | string {
 
 type TelnyxVerificationResult =
   | { ok: true; reason?: string; isReplay: boolean; verifiedRequestKey: string }
-  | { ok: false; reason: string; isReplay?: undefined; verifiedRequestKey?: undefined };
+  | {
+      ok: false;
+      reason: string;
+      isReplay?: undefined;
+      verifiedRequestKey?: undefined;
+    };
 
 /**
  * Verify Telnyx webhook signature using Ed25519.

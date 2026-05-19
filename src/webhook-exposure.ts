@@ -20,9 +20,7 @@ type VoiceCallWebhookExposureStatus = {
 export function providerRequiresPublicWebhook(
   providerName: string | undefined,
 ): boolean {
-  return (
-    providerName === "telnyx"
-  );
+  return providerName === "telnyx";
 }
 
 export function isLocalOnlyWebhookHost(hostname: string): boolean {

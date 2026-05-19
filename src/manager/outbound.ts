@@ -21,7 +21,6 @@ import { addTranscriptEntry, transitionState } from "./state.js";
 import { persistCallRecord } from "./store.js";
 import { clearTranscriptWaiter, waitForFinalTranscript } from "./timers.js";
 
-
 type InitiateContext = Pick<
   CallManagerContext,
   | "activeCalls"
@@ -422,8 +421,7 @@ export async function continueCall(
   ctx.activeTurnCalls.add(callId);
 
   const turnStartedAt = Date.now();
-  const turnToken =
-    undefined;
+  const turnToken = undefined;
 
   try {
     await speak(ctx, callId, prompt);

@@ -50,8 +50,6 @@ const TelnyxConfigSchema = z
   .strict();
 export type TelnyxConfig = z.infer<typeof TelnyxConfigSchema>;
 
-
-
 export type VoiceCallTtsConfig = z.infer<typeof TtsConfigSchema>;
 
 const VoiceCallNumberRouteConfigSchema = z
@@ -468,7 +466,7 @@ export const VoiceCallConfigSchema = z
      * is missing. The provisioned values are persisted to
      * `<store>/provisioned.json` so they survive gateway restarts.
      */
-    autoProvision: z.boolean().default(false),
+    autoProvision: z.boolean().default(true),
 
     /** TTS override (deep-merges with core messages.tts) */
     tts: TtsConfigSchema,
@@ -495,7 +493,8 @@ export type VoiceCallEffectiveConfigResult = {
   config: VoiceCallConfig;
   numberRouteKey?: string;
 };
-type DeepPartial<T> = T extends Array<infer U>
+type DeepPartial<T> =
+  T extends Array<infer U>
     ? DeepPartial<U>[]
     : T extends object
       ? { [K in keyof T]?: DeepPartial<T[K]> }
@@ -799,10 +798,12 @@ export function validateProviderConfig(config: VoiceCallConfig): {
     errors.push("plugins.entries.voice-call.config.provider is required");
   }
 
-  if (!config.fromNumber && config.provider !== "mock" && !config.autoProvision) {
-    errors.push(
-      "plugins.entries.voice-call.config.fromNumber is required",
-    );
+  if (
+    !config.fromNumber &&
+    config.provider !== "mock" &&
+    !config.autoProvision
+  ) {
+    errors.push("plugins.entries.voice-call.config.fromNumber is required");
   }
 
   if (config.provider === "telnyx") {

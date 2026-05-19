@@ -114,10 +114,13 @@ function createExternalProviderConfig(params: {
     tunnelProvider: "none",
   });
   config.telnyx = {
-
     apiKey: "key",
   };
-  config.telnyx = { apiKey: "KEY123", connectionId: "CONN456", publicKey: "PUB123" };
+  config.telnyx = {
+    apiKey: "KEY123",
+    connectionId: "CONN456",
+    publicKey: "PUB123",
+  };
   if (params.publicUrl) {
     config.publicUrl = params.publicUrl;
   }

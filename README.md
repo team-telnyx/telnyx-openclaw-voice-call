@@ -79,17 +79,23 @@ Put under `plugins.entries.voice-call.config`:
 ```json5
 {
   provider: "telnyx", // or "mock" for dev/no-network
+  // Optional: if omitted with autoProvision enabled, Voice Call orders and assigns one.
   fromNumber: "+15550001234",
   toNumber: "+15550005678",
   sessionScope: "per-phone", // or "per-call"
 
   telnyx: {
     apiKey: "KEYxxxx",
+    // Optional: if omitted with autoProvision enabled, Voice Call creates a Call Control app.
     connectionId: "CONNxxxx",
     // Telnyx webhook public key from the Telnyx Mission Control Portal
     // (Base64 string; can also be set via TELNYX_PUBLIC_KEY).
     publicKey: "...",
   },
+
+  // Default true for Telnyx: creates/reuses a Call Control app + phone number when missing.
+  // Set false when using pre-provisioned Telnyx resources only.
+  autoProvision: true,
 
   // Webhook server
   serve: {
@@ -131,12 +137,12 @@ Put under `plugins.entries.voice-call.config`:
 Environment variables:
 
 - `TELNYX_API_KEY` — Telnyx API key
-- `TELNYX_CONNECTION_ID` — Telnyx Call Control connection ID
+- `TELNYX_CONNECTION_ID` — Telnyx Call Control connection ID (optional when `autoProvision` creates one)
 - `TELNYX_PUBLIC_KEY` — Telnyx webhook signature public key (Base64)
 
 Notes:
 
-- Telnyx requires a **publicly reachable** webhook URL.
+- Telnyx requires a **publicly reachable** webhook URL. With `autoProvision: true`, this URL is registered on the generated Call Control app.
 - `mock` is a local dev provider (no network calls).
 - For safe local validation, set `provider: "mock"` and skip Telnyx credentials.
 - Telnyx requires `telnyx.publicKey` (or `TELNYX_PUBLIC_KEY`) unless `skipSignatureVerification` is true.

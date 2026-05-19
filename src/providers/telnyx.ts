@@ -404,7 +404,10 @@ export class TelnyxProvider implements VoiceCallProvider {
   /**
    * Stop recording a call via Telnyx.
    */
-  async stopRecording(input: { callId: string; providerCallId: string }): Promise<void> {
+  async stopRecording(input: {
+    callId: string;
+    providerCallId: string;
+  }): Promise<void> {
     await this.apiRequest(
       `/calls/${input.providerCallId}/actions/record_stop`,
       {

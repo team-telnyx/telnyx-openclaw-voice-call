@@ -281,7 +281,24 @@ describe.skip("VoiceCallWebhookServer realtime transcription provider selection 
       const mediaHandler = server.getMediaStreamHandler() as unknown as {
         config: {
           onTalkEvent?: NonNullable<
-            (providerCallId: string, streamId: string, event: { id: string; type: string; sessionId?: string; turnId?: string; seq: number; timestamp: string | number; mode?: string; transport?: string; brain?: string; provider?: string; final?: boolean; payload?: unknown }) => void
+            (
+              providerCallId: string,
+              streamId: string,
+              event: {
+                id: string;
+                type: string;
+                sessionId?: string;
+                turnId?: string;
+                seq: number;
+                timestamp: string | number;
+                mode?: string;
+                transport?: string;
+                brain?: string;
+                provider?: string;
+                final?: boolean;
+                payload?: unknown;
+              },
+            ) => void
           >;
         };
       };

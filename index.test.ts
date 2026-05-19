@@ -356,7 +356,8 @@ describe("voice-call plugin", () => {
 
     expect(createVoiceCallRuntime).toHaveBeenCalledTimes(1);
     expect(
-      vi.mocked(createVoiceCallRuntime).mock.calls[0]?.[0]?.config.telnyx?.apiKey,
+      vi.mocked(createVoiceCallRuntime).mock.calls[0]?.[0]?.config.telnyx
+        ?.apiKey,
     ).toEqual(authToken);
   });
 

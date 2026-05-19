@@ -110,7 +110,10 @@ export interface VoiceCallProvider {
   startRecording?: (input: RecordingInput) => Promise<void>;
 
   /** Stop recording a call. */
-  stopRecording?: (input: { callId: string; providerCallId: string }) => Promise<void>;
+  stopRecording?: (input: {
+    callId: string;
+    providerCallId: string;
+  }) => Promise<void>;
 
   /** Transfer a call to another destination. */
   transferCall?: (input: TransferInput) => Promise<void>;

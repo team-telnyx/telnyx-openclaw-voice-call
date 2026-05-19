@@ -11,9 +11,7 @@ import {
 } from "./config.js";
 import { createVoiceCallBaseConfig } from "./test-fixtures.js";
 
-function createBaseConfig(
-  provider: "telnyx" | "mock",
-): VoiceCallConfig {
+function createBaseConfig(provider: "telnyx" | "mock"): VoiceCallConfig {
   return createVoiceCallBaseConfig({ provider });
 }
 
@@ -81,7 +79,6 @@ describe("validateProviderConfig", () => {
     });
   });
 
-
   describe("telnyx provider", () => {
     it("fails validation when apiKey is missing everywhere", () => {
       process.env.TELNYX_CONNECTION_ID = "CONN456";
@@ -130,7 +127,6 @@ describe("validateProviderConfig", () => {
       });
     });
   });
-
 
   describe("disabled config", () => {
     it("skips validation when enabled is false", () => {
@@ -201,6 +197,19 @@ describe("validateProviderConfig", () => {
 });
 
 describe("resolveVoiceCallConfig session routing", () => {
+  it("defaults Telnyx auto-provisioning on so enabling the plugin can create the phone-number agent", () => {
+    const config = resolveVoiceCallConfig({
+      enabled: true,
+      provider: "telnyx",
+      telnyx: { apiKey: "KEY123", publicKey: "public-key" },
+    });
+
+    expect(config.autoProvision).toBe(true);
+    expect(config.fromNumber).toBeUndefined();
+    expect(config.telnyx?.connectionId).toBeUndefined();
+    expect(validateProviderConfig(config)).toEqual({ valid: true, errors: [] });
+  });
+
   it("enables the pre-answer stale call reaper by default", () => {
     const config = resolveVoiceCallConfig({ enabled: true, provider: "mock" });
 

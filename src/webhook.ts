@@ -192,8 +192,6 @@ function normalizeWebhookResponse(parsed: {
   };
 }
 
-
-
 /**
  * HTTP server for receiving voice call webhooks from providers.
  * Supports WebSocket upgrades for media streams when streaming is enabled.
@@ -508,7 +506,10 @@ export class VoiceCallWebhookServer {
       return {
         statusCode: 200,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "hold", message: "All agents are currently busy. Please hold." }),
+        body: JSON.stringify({
+          status: "hold",
+          message: "All agents are currently busy. Please hold.",
+        }),
       };
     }
 
@@ -589,8 +590,6 @@ export class VoiceCallWebhookServer {
         return { statusCode: 401, body: "Unauthorized" };
       }
 
-
-
       const parsed = this.provider.parseWebhookEvent(ctx, {
         verifiedRequestKey: verification.verifiedRequestKey,
       });
@@ -642,8 +641,6 @@ export class VoiceCallWebhookServer {
       return false;
     }
   }
-
-
 
   private shouldAcceptRealtimeInboundRequest(params: URLSearchParams): boolean {
     switch (this.config.inboundPolicy) {

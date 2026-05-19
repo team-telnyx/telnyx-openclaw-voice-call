@@ -66,7 +66,6 @@ export class FakeProvider implements VoiceCallProvider {
   ): Promise<GetCallStatusResult> {
     return this.getCallStatusResult;
   }
-
 }
 
 export function createTestStorePath(): string {

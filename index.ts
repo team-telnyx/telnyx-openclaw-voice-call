@@ -296,7 +296,8 @@ function getVoiceCallRuntimeGlobalState(): VoiceCallRuntimeGlobalState {
 export default definePluginEntry({
   id: "voice-call",
   name: "Voice Call",
-  description: "Telnyx Voice AI plugin — enable one plugin and your OpenClaw agent becomes a Telnyx Voice AI phone number.",
+  description:
+    "Telnyx Voice AI plugin — enable one plugin and your OpenClaw agent becomes a Telnyx Voice AI phone number.",
   configSchema: voiceCallConfigSchema,
   register(api: OpenClawPluginApi) {
     const config = resolveVoiceCallConfig(

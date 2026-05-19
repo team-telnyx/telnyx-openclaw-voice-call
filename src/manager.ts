@@ -425,10 +425,7 @@ export class CallManager {
   }
 
   private maybeStartProviderRealtimeStream(call: CallRecord): void {
-    if (
-      !this.provider ||
-      !call.providerCallId
-    ) {
+    if (!this.provider || !call.providerCallId) {
       return;
     }
     if (typeof this.provider.startRealtimeStream !== "function") {
