@@ -1,4 +1,4 @@
-# @ocplatform/voice-call
+# @openclaw/voice-call
 
 **Telnyx Voice AI plugin for OpenClaw.**
 

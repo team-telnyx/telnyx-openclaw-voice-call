@@ -5,7 +5,7 @@ description: Telnyx Voice AI plugin for OpenClaw — enables realtime voice agen
 
 # Telnyx OpenClaw Voice Call
 
-This plugin packages the OpenClaw `voice-call` extension as a purpose-built Telnyx Voice AI plugin. Enable it and your OCPlatform agent becomes a Telnyx Voice AI phone number.
+This plugin packages the OpenClaw `voice-call` extension as a purpose-built Telnyx Voice AI plugin. Enable it and your OpenClaw agent becomes a Telnyx Voice AI phone number.
 
 **Provider support:** Telnyx (production) + Mock (dev/no-network).
 
