@@ -26,7 +26,7 @@
     "prepack": "npm run build",
     "pretest": "npm run check:sdk",
     "test": "vitest run",
-    "pretest:smoke": "npm run check:sdk",
+    "pretest:smoke": "echo 'Smoke tests do not require SDK exports'",
     "test:smoke": "vitest run src/providers/mock.test.ts src/config.test.ts src/cli.test.ts",
     "lint": "npm run check:sdk && tsc --noEmit",
     "typecheck": "npm run lint",

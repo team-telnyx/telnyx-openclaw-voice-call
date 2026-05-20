@@ -14,6 +14,25 @@ Providers:
 Docs: `https://docs.openclaw.ai/plugins/voice-call`
 Plugin system: `https://docs.openclaw.ai/plugin`
 
+## Quickstart (local dev, no Telnyx account needed)
+
+```bash
+npm ci
+npm run test:smoke    # mock-only tests, no SDK or credentials required
+```
+
+To validate against a Telnyx account:
+
+```json5
+// In your OpenClaw config under plugins.entries.voice-call.config:
+{
+  provider: "mock",  // switch to "telnyx" for production
+  serve: { port: 3334, path: "/voice/webhook" },
+}
+```
+
+See [Config](#config) below for full Telnyx setup.
+
 ## Install (local dev)
 
 > **AIF-126 status:** this standalone checkout requires OpenClaw SDK exports that are present on OpenClaw `main` and guarded by `openclaw/openclaw#79378`, but are not yet in npm `openclaw@2026.5.7`. Until the next OpenClaw release containing those exports, clean installs against npm will fail `npm run check:sdk` with a clear compatibility message.
@@ -84,6 +103,7 @@ Put under `plugins.entries.voice-call.config`:
 
 ```json5
 {
+  enabled: true,          // set false to disable the plugin without removing config
   provider: "telnyx", // or "mock" for dev/no-network
   // Optional: if omitted with autoProvision enabled, Voice Call orders and assigns one.
   fromNumber: "+15550001234",
@@ -95,9 +115,10 @@ Put under `plugins.entries.voice-call.config`:
     // Optional: if omitted with autoProvision enabled, Voice Call creates a Call Control app.
     // Find existing apps at https://portal.telnyx.com/#/app/call-control/applications
     connectionId: "CONNxxxx",
-    // Telnyx webhook public key from the Telnyx Mission Control Portal
-    // https://portal.telnyx.com/#/app/call-control/applications
-    // (Base64 string; can also be set via TELNYX_PUBLIC_KEY).
+    // Telnyx webhook signature verification public key (Ed25519, Base64).
+    // Required for production — verifies inbound webhooks are genuinely from Telnyx.
+    // Get it from https://portal.telnyx.com/#/app/call-control/applications
+    // (can also be set via TELNYX_PUBLIC_KEY env var).
     publicKey: "...",
   },
 
