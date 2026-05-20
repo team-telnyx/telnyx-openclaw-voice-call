@@ -1,0 +1,70 @@
+{
+  "name": "telnyx-openclaw-voice-call",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "description": "Telnyx-first Voice Call provider plugin for OpenClaw realtime voice agents",
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  },
+  "files": [
+    "dist",
+    "openclaw.plugin.json",
+    "README.md",
+    "LICENSE",
+    "SKILL.md",
+    "scripts/check-openclaw-sdk.mjs"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check:sdk": "node scripts/check-openclaw-sdk.mjs",
+    "build": "npm run check:sdk && tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
+    "pretest": "npm run check:sdk",
+    "test": "vitest run",
+    "pretest:smoke": "echo 'Smoke tests do not require SDK exports'",
+    "test:smoke": "vitest run src/providers/mock.test.ts src/config.test.ts src/cli.test.ts",
+    "lint": "npm run check:sdk && tsc --noEmit",
+    "typecheck": "npm run lint",
+    "format:check": "prettier --check \"**/*.{ts,md,json}\""
+  },
+  "keywords": [
+    "openclaw",
+    "telnyx",
+    "voice",
+    "voice-ai",
+    "call-control",
+    "realtime",
+    "plugin"
+  ],
+  "author": "Ifthikar Razik <ifthikar@telnyx.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/team-telnyx/telnyx-openclaw-voice-call.git"
+  },
+  "bugs": {
+    "url": "https://github.com/team-telnyx/telnyx-openclaw-voice-call/issues"
+  },
+  "homepage": "https://github.com/team-telnyx/telnyx-openclaw-voice-call#readme",
+  "dependencies": {
+    "commander": "^14.0.3",
+    "typebox": "1.1.37",
+    "ws": "^8.20.0"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.5.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.2",
+    "@types/ws": "^8.18.1",
+    "openclaw": "^2026.5.18",
+    "prettier": "^3.6.2",
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.5"
+  }
+}
