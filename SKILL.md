@@ -14,12 +14,22 @@ This plugin packages the OpenClaw `voice-call` extension as a purpose-built Teln
 > This plugin requires OpenClaw SDK exports not yet in npm `openclaw@2026.5.7`.
 > See [openclaw/openclaw#79378](https://github.com/openclaw/openclaw/pull/79378).
 
-**Expected results today:**
+**Expected results (against a checkout with SDK exports available):**
 
 | Command              | Status                           |
 | -------------------- | -------------------------------- |
 | `npm ci`             | ✅                               |
-| `npm run check:sdk`  | ❌ (until next OpenClaw release) |
+| `npm run check:sdk`  | ✅ (if SDK exports are present)  |
+| `npm run build`      | ✅ (runs check:sdk first)        |
+| `npm run test:smoke` | ✅                               |
+| `npm test`           | ✅ (runs check:sdk first)        |
+
+**Against npm `openclaw@2026.5.7` (no SDK exports yet):**
+
+| Command              | Status                           |
+| -------------------- | -------------------------------- |
+| `npm ci`             | ✅                               |
+| `npm run check:sdk`  | ❌ (missing realtime-voice/security-runtime exports) |
 | `npm run build`      | ❌ (runs check:sdk first)        |
 | `npm run test:smoke` | ✅                               |
 | `npm test`           | ❌ (runs check:sdk first)        |

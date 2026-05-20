@@ -34,6 +34,14 @@
       "label": "Default To Number",
       "placeholder": "+15550001234"
     },
+    "autoProvision": {
+      "label": "Auto-Provision",
+      "help": "When enabled (default), automatically creates a Call Control app and orders a phone number if missing."
+    },
+    "agentId": {
+      "label": "Response Agent",
+      "help": "Agent workspace for voice-call responses. Defaults to \"main\"."
+    },
     "inboundPolicy": {
       "label": "Inbound Policy"
     },
@@ -838,6 +846,13 @@
       },
       "store": {
         "type": "string"
+      },
+      "autoProvision": {
+        "type": "boolean"
+      },
+      "agentId": {
+        "type": "string",
+        "minLength": 1
       },
       "sessionScope": {
         "type": "string",

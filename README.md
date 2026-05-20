@@ -4,6 +4,8 @@
 
 Enable this plugin and your OpenClaw agent becomes a Telnyx Voice AI phone number — inbound and outbound calls, realtime voice streaming, and full Call Control v2 integration out of the box.
 
+**Prerequisites:** A [Telnyx account](https://portal.telnyx.com/) (free to create) and an API key from [Mission Control → API Keys](https://portal.telnyx.com/#/app/api-keys).
+
 Providers:
 
 - **Telnyx** (Call Control v2) — production voice AI
@@ -27,9 +29,13 @@ npm run build
 npm test
 ```
 
-If `npm run check:sdk` reports missing `openclaw/plugin-sdk/realtime-voice` or `openclaw/plugin-sdk/security-runtime` exports, validate against an OpenClaw checkout that includes `openclaw/openclaw#79378` or a newer OpenClaw release:
+If `npm run check:sdk` reports missing `openclaw/plugin-sdk/realtime-voice` or `openclaw/plugin-sdk/security-runtime` exports, validate against an OpenClaw checkout that includes [openclaw/openclaw#79378](https://github.com/openclaw/openclaw/pull/79378) or a newer OpenClaw release:
 
 ```bash
+# Clone and build OpenClaw (requires pnpm)
+git clone https://github.com/openclaw/openclaw.git /path/to/openclaw
+cd /path/to/openclaw && pnpm install && pnpm build
+cd -  # back to this plugin
 npm install --no-save /path/to/openclaw
 npm run build
 npm test
@@ -87,8 +93,10 @@ Put under `plugins.entries.voice-call.config`:
   telnyx: {
     apiKey: "KEYxxxx",
     // Optional: if omitted with autoProvision enabled, Voice Call creates a Call Control app.
+    // Find existing apps at https://portal.telnyx.com/#/app/call-control/applications
     connectionId: "CONNxxxx",
     // Telnyx webhook public key from the Telnyx Mission Control Portal
+    // https://portal.telnyx.com/#/app/call-control/applications
     // (Base64 string; can also be set via TELNYX_PUBLIC_KEY).
     publicKey: "...",
   },
@@ -115,6 +123,24 @@ Put under `plugins.entries.voice-call.config`:
   // Optional response agent workspace. Defaults to "main".
   agentId: "main",
 
+  // Inbound call control
+  inboundPolicy: "allowlist", // "disabled" | "allowlist" | "pairing" | "open"
+  allowFrom: ["+15550001234"], // E.164 numbers allowed when inboundPolicy is "allowlist"
+  // inboundGreeting: "Hello, how can I help?", // spoken on inbound answer
+
+  // Per-number routing overrides (keyed by dialed E.164 number)
+  // numbers: {
+  //   "+15550009999": { inboundGreeting: "Sales line", agentId: "sales" },
+  // },
+
+  // Call limits & timeouts
+  // maxDurationSeconds: 3600,     // max call duration
+  // maxConcurrentCalls: 10,        // max simultaneous calls
+  // ringTimeoutMs: 30000,          // how long to let outbound ring
+  // silenceTimeoutMs: 10000,       // auto-hangup on silence
+  // transcriptTimeoutMs: 30000,    // transcript completion deadline
+  // staleCallReaperSeconds: 600,   // reap zombie calls
+
   streaming: {
     enabled: true,
     // optional; if omitted, Voice Call picks the first registered
@@ -131,6 +157,36 @@ Put under `plugins.entries.voice-call.config`:
     maxPendingConnectionsPerIp: 4,
     maxConnections: 128,
   },
+
+  // Realtime voice AI (bidirectional voice conversation)
+  // realtime: {
+  //   enabled: true,
+  //   provider: "<realtime-voice-provider-id>",
+  //   instructions: "You are a helpful phone assistant.",
+  //   toolPolicy: "safe-read-only", // "safe-read-only" | "owner" | "none"
+  //   consultPolicy: "auto",         // "auto" | "substantive" | "always"
+  //   fastContext: { enabled: true, timeoutMs: 2000, sources: ["memory", "sessions"] },
+  //   agentContext: { enabled: true, includeIdentity: true },
+  //   providers: {
+  //     "<realtime-voice-provider-id>": { /* provider-owned options */ },
+  //   },
+  // },
+
+  // TTS for calls (deep-merges with messages.tts)
+  // tts: {
+  //   auto: "inbound",      // "off" | "always" | "inbound" | "tagged"
+  //   provider: "elevenlabs", // or "openai", etc.
+  //   providers: {
+  //     elevenlabs: { voiceId: "21m00Tcm4TlvDq8ikWAM" },
+  //   },
+  // },
+
+  // Webhook security
+  // webhookSecurity: {
+  //   allowedHosts: ["example.ngrok.app"],
+  //   trustForwardingHeaders: false,
+  //   trustedProxyIPs: ["10.0.0.1"],
+  // },
 }
 ```
 
@@ -165,14 +221,29 @@ streaming speech on calls. Override examples and provider caveats live here:
 ## CLI
 
 ```bash
+# Outbound calls
 openclaw voicecall call --to "+15555550123" --message "Hello from OpenClaw"
+openclaw voicecall call --to "+15555550123" --message "Hello" --mode conversation
+openclaw voicecall start --to "+15555550123" --message "Hello"    # alias for 'call'
+
+# In-call interaction
 openclaw voicecall continue --call-id <id> --message "Any questions?"
 openclaw voicecall speak --call-id <id> --message "One moment"
+openclaw voicecall dtmf --call-id <id> --digits "1234"
 openclaw voicecall end --call-id <id>
-ocplatform voicecall status --json
-openclaw voicecall status --call-id <id>
-openclaw voicecall tail
-openclaw voicecall expose --mode funnel
+
+# Status & diagnostics
+openclaw voicecall status --json                         # all calls
+openclaw voicecall status --call-id <id>                  # specific call
+openclaw voicecall setup --json                           # provider/webhook readiness
+openclaw voicecall smoke                                  # readiness check + optional test call
+openclaw voicecall tail                                    # tail voice-call JSONL logs
+openclaw voicecall latency                                # summarize turn latency from logs
+
+# Webhook exposure
+openclaw voicecall expose --mode funnel                   # Tailscale funnel
+openclaw voicecall expose --mode serve                    # Tailscale serve
+openclaw voicecall expose --mode off                     # disable exposure
 ```
 
 ## Tool
@@ -182,6 +253,12 @@ Tool name: `voice_call`
 Actions:
 
 - `initiate_call` (message, to?, mode?)
+- `start_call` (to, message?, mode?)
+- `continue_call` (callId, message)
+- `speak_to_user` (callId, message)
+- `send_dtmf` (callId, digits)
+- `end_call` (callId)
+- `get_status` (callId)
 - `continue_call` (callId, message)
 - `speak_to_user` (callId, message)
 - `end_call` (callId)
@@ -190,8 +267,10 @@ Actions:
 ## Gateway RPC
 
 - `voicecall.initiate` (to?, message, mode?)
+- `voicecall.start` (to, message?, mode?)
 - `voicecall.continue` (callId, message)
 - `voicecall.speak` (callId, message)
+- `voicecall.dtmf` (callId, digits)
 - `voicecall.end` (callId)
 - `voicecall.status` (callId)
 
