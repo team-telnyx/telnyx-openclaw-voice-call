@@ -65,5 +65,13 @@
     "prettier": "^3.6.2",
     "typescript": "^5.6.0",
     "vitest": "^4.1.5"
+  },
+  "ocplatform": {
+    "compat": {
+      "pluginApi": "^1.0.0"
+    },
+    "build": {
+      "ocplatformVersion": "2026.5.20"
+    }
   }
 }
