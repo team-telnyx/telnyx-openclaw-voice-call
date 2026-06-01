@@ -1,5 +1,5 @@
 {
-  "id": "voice-call",
+  "id": "telnyx-voice-call",
   "commandAliases": [
     {
       "name": "voicecall"
