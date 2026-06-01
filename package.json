@@ -66,5 +66,13 @@
     "prettier": "^3.6.2",
     "typescript": "^5.6.0",
     "vitest": "^4.1.5"
+  },
+  "assistantplatform": {
+    "compat": {
+      "pluginApi": "^1.0.0"
+    },
+    "build": {
+      "assistantplatformVersion": "2026.5.20"
+    }
   }
 }
