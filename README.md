@@ -132,10 +132,8 @@ Put under `plugins.entries.voice-call.config`:
     path: "/voice/webhook",
   },
 
-  // Public exposure (pick one):
+  // Public exposure. Start ngrok/Tailscale separately, then set the full URL here.
   // publicUrl: "https://example.ngrok.app/voice/webhook",
-  // tunnel: { provider: "ngrok" },
-  // tailscale: { mode: "funnel", path: "/voice/webhook" }
 
   outbound: {
     defaultMode: "notify", // or "conversation"
@@ -262,9 +260,7 @@ openclaw voicecall tail                                    # tail voice-call JSO
 openclaw voicecall latency                                # summarize turn latency from logs
 
 # Webhook exposure
-openclaw voicecall expose --mode funnel                   # Tailscale funnel
-openclaw voicecall expose --mode serve                    # Tailscale serve
-openclaw voicecall expose --mode off                     # disable exposure
+# Start your preferred tunnel separately, then set publicUrl in the plugin config.
 ```
 
 ## Tool
