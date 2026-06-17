@@ -1,6 +1,3 @@
-import { spawn } from "node:child_process";
-import { getTailscaleDnsName } from "./webhook/tailscale.js";
-
 /**
  * Tunnel configuration for exposing the webhook server.
  */
@@ -45,174 +42,18 @@ export async function startNgrokTunnel(config: {
   authToken?: string;
   domain?: string;
 }): Promise<TunnelResult> {
-  // Set auth token if provided
-  if (config.authToken) {
-    await runNgrokCommand(["config", "add-authtoken", config.authToken]);
-  }
-
-  // Build ngrok command args
-  const args = [
-    "http",
-    String(config.port),
-    "--log",
-    "stdout",
-    "--log-format",
-    "json",
-  ];
-
-  // Add custom domain if provided (paid ngrok feature)
-  if (config.domain) {
-    args.push("--domain", config.domain);
-  }
-
-  return new Promise((resolve, reject) => {
-    const proc = spawn("ngrok", args, {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    let resolved = false;
-    let publicUrl: string | null = null;
-    let outputBuffer = "";
-
-    const timeout = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        proc.kill("SIGTERM");
-        reject(new Error("ngrok startup timed out (30s)"));
-      }
-    }, 30000);
-
-    const processLine = (line: string) => {
-      try {
-        const log = JSON.parse(line);
-
-        // ngrok logs the public URL in a 'started tunnel' message
-        if (log.msg === "started tunnel" && log.url) {
-          publicUrl = log.url;
-        }
-
-        // Also check for the URL field directly
-        if (log.addr && log.url && !publicUrl) {
-          publicUrl = log.url;
-        }
-
-        // Check for ready state
-        if (publicUrl && !resolved) {
-          resolved = true;
-          clearTimeout(timeout);
-
-          // Add path to the public URL
-          const fullUrl = publicUrl + config.path;
-
-          console.log(`[voice-call] ngrok tunnel active: ${fullUrl}`);
-
-          resolve({
-            publicUrl: fullUrl,
-            provider: "ngrok",
-            stop: async () => {
-              proc.kill("SIGTERM");
-              await new Promise<void>((res) => {
-                proc.on("close", () => res());
-                setTimeout(res, 2000); // Fallback timeout
-              });
-            },
-          });
-        }
-      } catch {
-        // Not JSON, might be startup message
-      }
-    };
-
-    proc.stdout.on("data", (data: Buffer) => {
-      outputBuffer += data.toString();
-      const lines = outputBuffer.split("\n");
-      outputBuffer = lines.pop() || "";
-
-      for (const line of lines) {
-        if (line.trim()) {
-          processLine(line);
-        }
-      }
-    });
-
-    proc.stderr.on("data", (data: Buffer) => {
-      const msg = data.toString();
-      // Check for common errors
-      if (msg.includes("ERR_NGROK")) {
-        if (!resolved) {
-          resolved = true;
-          clearTimeout(timeout);
-          reject(new Error(`ngrok error: ${msg}`));
-        }
-      }
-    });
-
-    proc.on("error", (err) => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(timeout);
-        reject(new Error(`Failed to start ngrok: ${err.message}`));
-      }
-    });
-
-    proc.on("close", (code) => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(timeout);
-        reject(new Error(`ngrok exited unexpectedly with code ${code}`));
-      }
-    });
-  });
-}
-
-/**
- * Run an ngrok command and wait for completion.
- */
-async function runNgrokCommand(args: string[]): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn("ngrok", args, {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    let stdout = "";
-    let stderr = "";
-
-    proc.stdout.on("data", (data) => {
-      stdout += data.toString();
-    });
-    proc.stderr.on("data", (data) => {
-      stderr += data.toString();
-    });
-
-    proc.on("close", (code) => {
-      if (code === 0) {
-        resolve(stdout);
-      } else {
-        reject(new Error(`ngrok command failed: ${stderr || stdout}`));
-      }
-    });
-
-    proc.on("error", reject);
-  });
+  void config;
+  throw new Error(
+    "Automatic ngrok startup is disabled for install-safe OpenClaw plugins. " +
+      "Start ngrok separately and set publicUrl in the voice-call config.",
+  );
 }
 
 /**
  * Check if ngrok is installed and available.
  */
 export async function isNgrokAvailable(): Promise<boolean> {
-  return new Promise((resolve) => {
-    const proc = spawn("ngrok", ["version"], {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    proc.on("close", (code) => {
-      resolve(code === 0);
-    });
-
-    proc.on("error", () => {
-      resolve(false);
-    });
-  });
+  return false;
 }
 
 /**
@@ -223,78 +64,11 @@ export async function startTailscaleTunnel(config: {
   port: number;
   path: string;
 }): Promise<TunnelResult> {
-  // Get Tailscale DNS name
-  const dnsName = await getTailscaleDnsName();
-  if (!dnsName) {
-    throw new Error("Could not get Tailscale DNS name. Is Tailscale running?");
-  }
-
-  const path = config.path.startsWith("/") ? config.path : `/${config.path}`;
-  const localUrl = `http://127.0.0.1:${config.port}${path}`;
-
-  return new Promise((resolve, reject) => {
-    const proc = spawn(
-      "tailscale",
-      [config.mode, "--bg", "--yes", "--set-path", path, localUrl],
-      {
-        stdio: ["ignore", "pipe", "pipe"],
-      },
-    );
-
-    const timeout = setTimeout(() => {
-      proc.kill("SIGKILL");
-      reject(new Error(`Tailscale ${config.mode} timed out`));
-    }, 10000);
-
-    proc.on("close", (code) => {
-      clearTimeout(timeout);
-      if (code === 0) {
-        const publicUrl = `https://${dnsName}${path}`;
-        console.log(
-          `[voice-call] Tailscale ${config.mode} active: ${publicUrl}`,
-        );
-
-        resolve({
-          publicUrl,
-          provider: `tailscale-${config.mode}`,
-          stop: async () => {
-            await stopTailscaleTunnel(config.mode, path);
-          },
-        });
-      } else {
-        reject(new Error(`Tailscale ${config.mode} failed with code ${code}`));
-      }
-    });
-
-    proc.on("error", (err) => {
-      clearTimeout(timeout);
-      reject(err);
-    });
-  });
-}
-
-/**
- * Stop a Tailscale serve/funnel tunnel.
- */
-async function stopTailscaleTunnel(
-  mode: "serve" | "funnel",
-  path: string,
-): Promise<void> {
-  return new Promise((resolve) => {
-    const proc = spawn("tailscale", [mode, "off", path], {
-      stdio: "ignore",
-    });
-
-    const timeout = setTimeout(() => {
-      proc.kill("SIGKILL");
-      resolve();
-    }, 5000);
-
-    proc.on("close", () => {
-      clearTimeout(timeout);
-      resolve();
-    });
-  });
+  void config;
+  throw new Error(
+    "Automatic Tailscale exposure is disabled for install-safe OpenClaw plugins. " +
+      "Configure Tailscale separately and set publicUrl in the voice-call config.",
+  );
 }
 
 /**

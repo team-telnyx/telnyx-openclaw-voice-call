@@ -9,7 +9,7 @@
       "./dist/index.js"
     ],
     "compat": {
-      "pluginApi": "^1.0.0"
+      "pluginApi": "2026.4"
     },
     "build": {
       "openclawVersion": "2026.5.20"
@@ -60,7 +60,7 @@
   "dependencies": {
     "commander": "^14.0.3",
     "typebox": "1.1.37",
-    "ws": "^8.20.0"
+    "ws": "^8.21.0"
   },
   "peerDependencies": {
     "openclaw": ">=2026.5.6"
