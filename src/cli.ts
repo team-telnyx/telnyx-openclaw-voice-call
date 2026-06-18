@@ -300,14 +300,14 @@ function buildSetupStatus(config: VoiceCallConfig): SetupStatus {
       ok: config.enabled,
       message: config.enabled
         ? "Voice Call plugin is enabled"
-        : "Enable plugins.entries.voice-call.enabled",
+        : "Enable plugins.entries.telnyx-voice-call.enabled",
     },
     {
       id: "provider",
       ok: Boolean(config.provider),
       message: config.provider
         ? `Provider configured: ${config.provider}`
-        : "Set plugins.entries.voice-call.config.provider",
+        : "Set plugins.entries.telnyx-voice-call.config.provider",
     },
     {
       id: "provider-config",

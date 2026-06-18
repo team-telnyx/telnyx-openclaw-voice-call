@@ -795,7 +795,7 @@ export function validateProviderConfig(config: VoiceCallConfig): {
   }
 
   if (!config.provider) {
-    errors.push("plugins.entries.voice-call.config.provider is required");
+    errors.push("plugins.entries.telnyx-voice-call.config.provider is required");
   }
 
   if (
@@ -803,36 +803,36 @@ export function validateProviderConfig(config: VoiceCallConfig): {
     config.provider !== "mock" &&
     !config.autoProvision
   ) {
-    errors.push("plugins.entries.voice-call.config.fromNumber is required");
+    errors.push("plugins.entries.telnyx-voice-call.config.fromNumber is required");
   }
 
   if (config.provider === "telnyx") {
     if (!config.telnyx?.apiKey) {
       errors.push(
-        "plugins.entries.voice-call.config.telnyx.apiKey is required (or set TELNYX_API_KEY env)",
+        "plugins.entries.telnyx-voice-call.config.telnyx.apiKey is required (or set TELNYX_API_KEY env)",
       );
     }
     if (!config.telnyx?.connectionId && !config.autoProvision) {
       errors.push(
-        "plugins.entries.voice-call.config.telnyx.connectionId is required (or set TELNYX_CONNECTION_ID env)",
+        "plugins.entries.telnyx-voice-call.config.telnyx.connectionId is required (or set TELNYX_CONNECTION_ID env)",
       );
     }
     if (!config.skipSignatureVerification && !config.telnyx?.publicKey) {
       errors.push(
-        "plugins.entries.voice-call.config.telnyx.publicKey is required (or set TELNYX_PUBLIC_KEY env)",
+        "plugins.entries.telnyx-voice-call.config.telnyx.publicKey is required (or set TELNYX_PUBLIC_KEY env)",
       );
     }
   }
 
   if (config.realtime.enabled && config.inboundPolicy === "disabled") {
     errors.push(
-      'plugins.entries.voice-call.config.inboundPolicy must not be "disabled" when realtime.enabled is true',
+      'plugins.entries.telnyx-voice-call.config.inboundPolicy must not be "disabled" when realtime.enabled is true',
     );
   }
 
   if (config.realtime.enabled && config.streaming.enabled) {
     errors.push(
-      "plugins.entries.voice-call.config.realtime.enabled and plugins.entries.voice-call.config.streaming.enabled cannot both be true",
+      "plugins.entries.telnyx-voice-call.config.realtime.enabled and plugins.entries.telnyx-voice-call.config.streaming.enabled cannot both be true",
     );
   }
 
@@ -842,7 +842,7 @@ export function validateProviderConfig(config: VoiceCallConfig): {
     config.provider !== "telnyx"
   ) {
     errors.push(
-      'plugins.entries.voice-call.config.provider must be "telnyx" when realtime.enabled is true',
+      'plugins.entries.telnyx-voice-call.config.provider must be "telnyx" when realtime.enabled is true',
     );
   }
 

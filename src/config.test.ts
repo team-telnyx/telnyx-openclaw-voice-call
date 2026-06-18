@@ -89,7 +89,7 @@ describe("validateProviderConfig", () => {
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContain(
-        "plugins.entries.voice-call.config.telnyx.apiKey is required (or set TELNYX_API_KEY env)",
+        "plugins.entries.telnyx-voice-call.config.telnyx.apiKey is required (or set TELNYX_API_KEY env)",
       );
     });
 
@@ -100,7 +100,7 @@ describe("validateProviderConfig", () => {
       const missingPublicKeyResult = validateProviderConfig(missingPublicKey);
       expect(missingPublicKeyResult.valid).toBe(false);
       expect(missingPublicKeyResult.errors).toContain(
-        "plugins.entries.voice-call.config.telnyx.publicKey is required (or set TELNYX_PUBLIC_KEY env)",
+        "plugins.entries.telnyx-voice-call.config.telnyx.publicKey is required (or set TELNYX_PUBLIC_KEY env)",
       );
 
       const withPublicKey = createBaseConfig("telnyx");
@@ -150,7 +150,7 @@ describe("validateProviderConfig", () => {
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContain(
-        'plugins.entries.voice-call.config.inboundPolicy must not be "disabled" when realtime.enabled is true',
+        'plugins.entries.telnyx-voice-call.config.inboundPolicy must not be "disabled" when realtime.enabled is true',
       );
     });
 
@@ -164,7 +164,7 @@ describe("validateProviderConfig", () => {
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContain(
-        "plugins.entries.voice-call.config.realtime.enabled and plugins.entries.voice-call.config.streaming.enabled cannot both be true",
+        "plugins.entries.telnyx-voice-call.config.realtime.enabled and plugins.entries.telnyx-voice-call.config.streaming.enabled cannot both be true",
       );
     });
 

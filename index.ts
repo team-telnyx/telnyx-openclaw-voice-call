@@ -294,7 +294,7 @@ function getVoiceCallRuntimeGlobalState(): VoiceCallRuntimeGlobalState {
 }
 
 export default definePluginEntry({
-  id: "voice-call",
+  id: "telnyx-voice-call",
   name: "Voice Call",
   description:
     "Telnyx Voice AI plugin — enable one plugin and your OpenClaw agent becomes a Telnyx Voice AI phone number.",
@@ -308,7 +308,7 @@ export default definePluginEntry({
     if (api.pluginConfig && typeof api.pluginConfig === "object") {
       for (const warning of formatVoiceCallLegacyConfigWarnings({
         value: api.pluginConfig,
-        configPathPrefix: "plugins.entries.voice-call.config",
+        configPathPrefix: "plugins.entries.telnyx-voice-call.config",
         doctorFixCommand: "openclaw doctor --fix",
       })) {
         api.logger.warn(warning);
