@@ -472,7 +472,7 @@ export async function createVoiceCallRuntime(params: {
       throw new Error(
         `[voice-call] ${provider.name} requires a publicly reachable webhook URL. ` +
           `Refusing to use local-only webhook ${webhookUrl}. ` +
-          "Set plugins.entries.voice-call.config.publicUrl or enable tunnel/tailscale exposure.",
+          "Set plugins.entries.telnyx-voice-call.config.publicUrl or enable tunnel/tailscale exposure.",
       );
     }
 

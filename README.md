@@ -24,7 +24,7 @@ npm run test:smoke    # mock-only tests, no SDK or credentials required
 To validate against a Telnyx account:
 
 ```json5
-// In your OpenClaw config under plugins.entries.voice-call.config:
+// In your OpenClaw config under plugins.entries.telnyx-voice-call.config:
 {
   provider: "mock",  // switch to "telnyx" for production
   serve: { port: 3334, path: "/voice/webhook" },
@@ -34,8 +34,6 @@ To validate against a Telnyx account:
 See [Config](#config) below for full Telnyx setup.
 
 ## Install (local dev)
-
-> **AIF-126 status:** this standalone checkout requires OpenClaw SDK exports that are present on OpenClaw `main` and guarded by `openclaw/openclaw#79378`, but are not yet in npm `openclaw@2026.5.7`. Until the next OpenClaw release containing those exports, clean installs against npm will fail `npm run check:sdk` with a clear compatibility message.
 
 ### First-time validation from this checkout
 
@@ -48,25 +46,25 @@ npm run build
 npm test
 ```
 
-If `npm run check:sdk` reports missing `openclaw/plugin-sdk/realtime-voice` or `openclaw/plugin-sdk/security-runtime` exports, validate against an OpenClaw checkout that includes [openclaw/openclaw#79378](https://github.com/openclaw/openclaw/pull/79378) or a newer OpenClaw release:
-
-```bash
-# Clone and build OpenClaw (requires pnpm)
-git clone https://github.com/openclaw/openclaw.git /path/to/openclaw
-cd /path/to/openclaw && pnpm install && pnpm build
-cd -  # back to this plugin
-npm install --no-save /path/to/openclaw
-npm run build
-npm test
-```
-
 Safe mock-only smoke test:
 
 ```bash
 npm run test:smoke
 ```
 
-### Option A: install via OpenClaw (recommended after SDK release)
+### Option A: install from this checkout
+
+```bash
+git clone https://github.com/team-telnyx/telnyx-openclaw-voice-call.git
+cd telnyx-openclaw-voice-call
+npm install
+npm run build
+openclaw plugins install . --force
+```
+
+Restart the Gateway afterwards.
+
+### Option B: install via package name
 
 ```bash
 openclaw plugins install @openclaw/voice-call
@@ -74,32 +72,9 @@ openclaw plugins install @openclaw/voice-call
 
 Restart the Gateway afterwards.
 
-### Option B: copy into your global extensions folder (dev)
-
-```bash
-PLUGIN_HOME=~/.openclaw/extensions
-mkdir -p "$PLUGIN_HOME"
-cp -R <local-plugin-checkout> "$PLUGIN_HOME/voice-call"
-cd "$PLUGIN_HOME/voice-call" && npm ci
-npm install --no-save /path/to/openclaw # until SDK exports are released
-npm run build
-```
-
-Then add the plugin load path to your OpenClaw config so the standalone copy takes priority over any bundled version:
-
-```json
-{
-  "plugins": {
-    "load": {
-      "paths": ["~/.openclaw/extensions/voice-call"]
-    }
-  }
-}
-```
-
 ## Config
 
-Put under `plugins.entries.voice-call.config`:
+Put under `plugins.entries.telnyx-voice-call.config`:
 
 ```json5
 {
@@ -222,6 +197,7 @@ Notes:
 - For safe local validation, set `provider: "mock"` and skip Telnyx credentials.
 - Telnyx requires `telnyx.publicKey` (or `TELNYX_PUBLIC_KEY`) unless `skipSignatureVerification` is true.
 - If older configs reference `provider: "log"` or legacy `streaming.*` OpenAI keys, run `openclaw doctor --fix` to rewrite them.
+- Older configs under `plugins.entries.voice-call.config` are still read as a compatibility fallback, but new configs should use `plugins.entries.telnyx-voice-call.config`.
 - advanced webhook, streaming, and tunnel notes: `https://docs.openclaw.ai/plugins/voice-call`
 - `responseModel` is optional. When unset, voice responses use the runtime default model.
 - `sessionScope` defaults to `per-phone`, preserving caller memory across calls. Use `per-call` for reception, booking, IVR, and bridge flows where each carrier call should start fresh.

@@ -120,7 +120,7 @@ function setup(config: Record<string, unknown>): Registered {
   const tools: unknown[] = [];
   let service: Registered["service"];
   const api = createTestPluginApi({
-    id: "voice-call",
+    id: "telnyx-voice-call",
     name: "Voice Call",
     description: "test",
     version: "0",
@@ -162,7 +162,7 @@ async function registerVoiceCallCli(
     register: RegisterVoiceCall;
   };
   register({
-    id: "voice-call",
+    id: "telnyx-voice-call",
     name: "Voice Call",
     description: "test",
     version: "0",

@@ -2,7 +2,8 @@
   "id": "telnyx-voice-call",
   "commandAliases": [
     {
-      "name": "voicecall"
+      "name": "voicecall",
+      "cliCommand": "voicecall"
     }
   ],
   "activation": {
