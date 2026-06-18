@@ -365,6 +365,51 @@ describe("TelnyxProvider realtime streaming", () => {
   });
 });
 
+describe("TelnyxProvider transcription control", () => {
+  it("treats Telnyx already-active transcription as a successful listen start", async () => {
+    const release = vi.fn(async () => {});
+    apiMocks.fetchWithSsrFGuard.mockResolvedValue({
+      response: new Response(
+        JSON.stringify({
+          errors: [
+            {
+              code: "90054",
+              title: "Call transcription is already in progress",
+              detail: "Call transcription can not be started more than once.",
+            },
+          ],
+        }),
+        { status: 422 },
+      ),
+      release,
+    });
+    const provider = new TelnyxProvider({
+      apiKey: "KEY123",
+      connectionId: "CONN456",
+      publicKey: undefined,
+    });
+
+    await expect(
+      provider.startListening({
+        callId: "call-1",
+        providerCallId: "call-control-1",
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(apiMocks.fetchWithSsrFGuard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: "https://api.telnyx.com/v2/calls/call-control-1/actions/transcription_start",
+        auditContext: "voice-call.telnyx.api",
+        policy: { allowedHostnames: ["api.telnyx.com"] },
+        init: expect.objectContaining({
+          method: "POST",
+        }),
+      }),
+    );
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("TelnyxProvider speak control", () => {
   it("passes custom Telnyx voice ids to the speak action", async () => {
     const release = vi.fn(async () => {});

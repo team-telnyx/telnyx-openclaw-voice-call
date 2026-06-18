@@ -51,6 +51,15 @@ function normalizeTelnyxDirection(
   }
 }
 
+function isTelnyxTranscriptionAlreadyInProgress(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes('"code": "90054"') ||
+    message.includes('"code":"90054"') ||
+    message.includes("Call transcription is already in progress")
+  );
+}
+
 export class TelnyxProvider implements VoiceCallProvider {
   readonly name = "telnyx" as const;
 
@@ -354,13 +363,20 @@ export class TelnyxProvider implements VoiceCallProvider {
    * Start transcription (STT) via Telnyx.
    */
   async startListening(input: StartListeningInput): Promise<void> {
-    await this.apiRequest(
-      `/calls/${input.providerCallId}/actions/transcription_start`,
-      {
-        command_id: crypto.randomUUID(),
-        language: input.language || "en",
-      },
-    );
+    try {
+      await this.apiRequest(
+        `/calls/${input.providerCallId}/actions/transcription_start`,
+        {
+          command_id: crypto.randomUUID(),
+          language: input.language || "en",
+        },
+      );
+    } catch (err) {
+      if (isTelnyxTranscriptionAlreadyInProgress(err)) {
+        return;
+      }
+      throw err;
+    }
   }
 
   /**
