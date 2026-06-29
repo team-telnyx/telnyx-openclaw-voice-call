@@ -660,6 +660,15 @@ export class VoiceCallWebhookServer {
 
   private processParsedEvents(events: NormalizedEvent[]): void {
     for (const event of events) {
+      const shouldAutoRespond =
+        event.type === "call.speech" &&
+        event.isFinal &&
+        event.transcript.trim().length > 0;
+      const callBeforeEvent = shouldAutoRespond
+        ? (this.manager as unknown as { getCall?: (callId: string) => CallRecord | undefined })
+            .getCall?.(event.callId)
+        : undefined;
+
       try {
         this.manager.processEvent(event);
       } catch (err) {
@@ -668,6 +677,22 @@ export class VoiceCallWebhookServer {
           err,
         );
       }
+
+      if (!shouldAutoRespond) {
+        continue;
+      }
+      if (this.shouldSuppressBargeInForInitialMessage(callBeforeEvent)) {
+        continue;
+      }
+
+      void this.handleInboundResponse(event.callId, event.transcript.trim()).catch(
+        (err) => {
+          console.error(
+            `[voice-call] Auto-response error for ${event.callId}:`,
+            err,
+          );
+        },
+      );
     }
   }
 

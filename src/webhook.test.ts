@@ -1095,6 +1095,73 @@ describe.skip("VoiceCallWebhookServer replay handling (needs Telnyx rewrite)", (
     }
   });
 
+  it("starts an agent response for final Telnyx transcription webhooks", async () => {
+    const call = createCall(Date.now() - 1_000);
+    call.callId = "call-transcript";
+    call.providerCallId = "provider-call-transcript";
+    call.state = "listening";
+    call.metadata = { mode: "conversation" };
+
+    const speechProvider: VoiceCallProvider = {
+      ...provider,
+      parseWebhookEvent: () => ({
+        events: [
+          {
+            id: "evt-transcript",
+            type: "call.speech",
+            callId: call.callId,
+            providerCallId: call.providerCallId,
+            timestamp: Date.now(),
+            transcript: "Can you hear me?",
+            isFinal: true,
+          },
+        ],
+        statusCode: 200,
+      }),
+    };
+    const { manager, processEvent } = createManager([call]);
+    (
+      manager as unknown as { getCall: (callId: string) => CallRecord | undefined }
+    ).getCall = (callId: string) => (callId === call.callId ? call : undefined);
+    const config = createConfig({
+      serve: { port: 0, bind: "127.0.0.1", path: "/voice/webhook" },
+    });
+    const server = new VoiceCallWebhookServer(config, manager, speechProvider);
+    const handleInboundResponse = vi.fn(async () => {});
+    (
+      server as unknown as {
+        handleInboundResponse: (
+          callId: string,
+          transcript: string,
+        ) => Promise<void>;
+      }
+    ).handleInboundResponse = handleInboundResponse;
+
+    try {
+      const baseUrl = await server.start();
+      const response = await postWebhookForm(
+        server,
+        baseUrl,
+        "CallSid=CA123&SpeechResult=Can%20you%20hear%20me%3F",
+      );
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(response.status).toBe(200);
+      expect(processEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "call.speech",
+          transcript: "Can you hear me?",
+        }),
+      );
+      expect(handleInboundResponse).toHaveBeenCalledWith(
+        "call-transcript",
+        "Can you hear me?",
+      );
+    } finally {
+      await server.stop();
+    }
+  });
+
   it("rejects requests when verification succeeds without a request key", async () => {
     const parseWebhookEvent = vi.fn(() => ({ events: [], statusCode: 200 }));
     const badProvider: VoiceCallProvider = {
